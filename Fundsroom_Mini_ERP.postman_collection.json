@@ -1,0 +1,364 @@
+{
+  "info": {
+    "name": "Mini Operations ERP API Collection",
+    "description": "Comprehensive Postman collection with real payloads and environment variables for testing all Mini Operations ERP REST endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "adminToken", "value": "" },
+    { "key": "opsToken", "value": "" },
+    { "key": "salesToken", "value": "" },
+    { "key": "locNorthId", "value": "" },
+    { "key": "locSouthId", "value": "" },
+    { "key": "itemSteelId", "value": "" },
+    { "key": "itemMotorId", "value": "" },
+    { "key": "workOrderId", "value": "" },
+    { "key": "transferId", "value": "" },
+    { "key": "orderId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login - Admin (admin@fundsroom.com)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('adminToken', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@fundsroom.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - Operations (ops@fundsroom.com)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('opsToken', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ops@fundsroom.com\",\n  \"password\": \"ops123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - Sales (sales@fundsroom.com)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('salesToken', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sales@fundsroom.com\",\n  \"password\": \"sales123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Current User Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "List Users (Admin / All)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/users", "host": ["{{baseUrl}}"], "path": ["api", "auth", "users"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Inventory & Warehousing",
+      "item": [
+        {
+          "name": "Get Warehouse Locations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/inventory/locations", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "locations"] }
+          }
+        },
+        {
+          "name": "Get Items Master",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/inventory/items", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "items"] }
+          }
+        },
+        {
+          "name": "Get Multi-Location Inventory (Calculated Available Stock)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory?search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory"],
+              "query": [{ "key": "search", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Stock Inward (Stock-In)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{itemSteelId}}\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"batchNumber\": \"BAT-ST-003\",\n  \"quantity\": 150,\n  \"notes\": \"Supplier shipment receipt batch 003\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/inventory/stock-in", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "stock-in"] }
+          }
+        },
+        {
+          "name": "Stock Adjustment (Cycle Count)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{itemSteelId}}\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"batchNumber\": \"BAT-ST-001\",\n  \"newPhysicalQuantity\": 520,\n  \"notes\": \"Physical count audit adjustment\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/inventory/adjust", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "adjust"] }
+          }
+        },
+        {
+          "name": "Get Inventory Transactions History (Audit Log)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/inventory/transactions?limit=50", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "transactions"], "query": [{ "key": "limit", "value": "50" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Work Orders & Material Stock Check",
+      "item": [
+        {
+          "name": "Calculate Real-Time Shortage Formula",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders/stock-check/calculate?locationId={{locSouthId}}&itemId={{itemMotorId}}&requiredQuantity=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "work-orders", "stock-check", "calculate"],
+              "query": [
+                { "key": "locationId", "value": "{{locSouthId}}" },
+                { "key": "itemId", "value": "{{itemMotorId}}" },
+                { "key": "requiredQuantity", "value": "25" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Work Order (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationId\": \"{{locSouthId}}\",\n  \"itemId\": \"{{itemMotorId}}\",\n  \"requiredQuantity\": 20,\n  \"notes\": \"Produce 20x electric motors for Q3\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/work-orders", "host": ["{{baseUrl}}"], "path": ["api", "work-orders"] }
+          }
+        },
+        {
+          "name": "List All Work Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/work-orders", "host": ["{{baseUrl}}"], "path": ["api", "work-orders"] }
+          }
+        },
+        {
+          "name": "Update Work Order Status (ASSIGNED -> IN_PROGRESS)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/work-orders/{{workOrderId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "work-orders", "{{workOrderId}}", "status"] }
+          }
+        },
+        {
+          "name": "Update Work Order Status (IN_PROGRESS -> COMPLETED)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/work-orders/{{workOrderId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "work-orders", "{{workOrderId}}", "status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Internal Warehouse Transfers",
+      "item": [
+        {
+          "name": "List Stock Transfers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{opsToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/transfers", "host": ["{{baseUrl}}"], "path": ["api", "transfers"] }
+          }
+        },
+        {
+          "name": "Request Internal Transfer (Ops / Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{opsToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceLocationId\": \"{{locNorthId}}\",\n  \"destinationLocationId\": \"{{locSouthId}}\",\n  \"itemId\": \"{{itemSteelId}}\",\n  \"batchNumber\": \"BAT-ST-001\",\n  \"quantity\": 30\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/transfers", "host": ["{{baseUrl}}"], "path": ["api", "transfers"] }
+          }
+        },
+        {
+          "name": "Dispatch Transfer (Source stock decreases)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{opsToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/transfers/{{transferId}}/dispatch", "host": ["{{baseUrl}}"], "path": ["api", "transfers", "{{transferId}}", "dispatch"] }
+          }
+        },
+        {
+          "name": "Receive Transfer (Destination stock increases)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{opsToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/transfers/{{transferId}}/receive", "host": ["{{baseUrl}}"], "path": ["api", "transfers", "{{transferId}}", "receive"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Customer Orders & Stock Reservation",
+      "item": [
+        {
+          "name": "List Customer Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          }
+        },
+        {
+          "name": "Create Customer Order (Status: DRAFT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{salesToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Apex Machine Automation Corp\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"items\": [\n    {\n      \"itemId\": \"{{itemMotorId}}\",\n      \"batchNumber\": \"BAT-MOT-001\",\n      \"quantity\": 5,\n      \"unitPrice\": 1200\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          }
+        },
+        {
+          "name": "Reserve Stock (Atomic Concurrency Safe)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/reserve", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "reserve"] }
+          }
+        },
+        {
+          "name": "Fulfill Customer Order (Physical stock consumed)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/fulfill", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "fulfill"] }
+          }
+        },
+        {
+          "name": "Cancel Order (Release reserved stock)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "cancel"] }
+          }
+        }
+      ]
+    }
+  ]
+}
