@@ -1,45 +1,56 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConflictError = exports.NotFoundError = exports.ForbiddenError = exports.UnauthorizedError = exports.BadRequestError = exports.AppError = void 0;
-class AppError extends Error {
-    statusCode;
-    details;
-    constructor(message, statusCode = 500, details) {
-        super(message);
-        this.name = this.constructor.name;
-        this.statusCode = statusCode;
-        this.details = details;
-        Error.captureStackTrace(this, this.constructor);
-    }
+function createAppError(message = 'Internal error', statusCode = 500, details = null) {
+  const err = new Error(message);
+  err.name = 'AppError';
+  err.statusCode = statusCode;
+  err.details = details;
+  return err;
 }
-exports.AppError = AppError;
-class BadRequestError extends AppError {
-    constructor(message = 'Bad request', details) {
-        super(message, 400, details);
-    }
+
+function BadRequestError(message = 'Bad request', details = null) {
+  const err = new Error(message);
+  err.name = 'BadRequestError';
+  err.statusCode = 400;
+  err.details = details;
+  return err;
 }
-exports.BadRequestError = BadRequestError;
-class UnauthorizedError extends AppError {
-    constructor(message = 'Unauthorized', details) {
-        super(message, 401, details);
-    }
+
+function UnauthorizedError(message = 'Unauthorized', details = null) {
+  const err = new Error(message);
+  err.name = 'UnauthorizedError';
+  err.statusCode = 401;
+  err.details = details;
+  return err;
 }
-exports.UnauthorizedError = UnauthorizedError;
-class ForbiddenError extends AppError {
-    constructor(message = 'Forbidden - Insufficient permissions', details) {
-        super(message, 403, details);
-    }
+
+function ForbiddenError(message = 'Forbidden - Insufficient permissions', details = null) {
+  const err = new Error(message);
+  err.name = 'ForbiddenError';
+  err.statusCode = 403;
+  err.details = details;
+  return err;
 }
-exports.ForbiddenError = ForbiddenError;
-class NotFoundError extends AppError {
-    constructor(message = 'Resource not found', details) {
-        super(message, 404, details);
-    }
+
+function NotFoundError(message = 'Resource not found', details = null) {
+  const err = new Error(message);
+  err.name = 'NotFoundError';
+  err.statusCode = 404;
+  err.details = details;
+  return err;
 }
-exports.NotFoundError = NotFoundError;
-class ConflictError extends AppError {
-    constructor(message = 'Conflict detected', details) {
-        super(message, 409, details);
-    }
+
+function ConflictError(message = 'Conflict detected', details = null) {
+  const err = new Error(message);
+  err.name = 'ConflictError';
+  err.statusCode = 409;
+  err.details = details;
+  return err;
 }
-exports.ConflictError = ConflictError;
+
+module.exports = {
+  AppError: createAppError,
+  BadRequestError,
+  UnauthorizedError,
+  ForbiddenError,
+  NotFoundError,
+  ConflictError,
+};

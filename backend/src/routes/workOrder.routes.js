@@ -1,38 +1,53 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const workOrder_controller_1 = require("../controllers/workOrder.controller");
-const auth_1 = require("../middlewares/auth");
-const validate_1 = require("../middlewares/validate");
-const zod_1 = require("zod");
-const router = (0, express_1.Router)();
-const createWorkOrderSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        locationId: zod_1.z.string().min(1, 'locationId is required'),
-        itemId: zod_1.z.string().min(1, 'itemId is required'),
-        requiredQuantity: zod_1.z.number().positive('Required quantity must be positive'),
-        assignedUserId: zod_1.z.string().optional(),
-        notes: zod_1.z.string().optional(),
-        materials: zod_1.z
-            .array(zod_1.z.object({
-            materialItemId: zod_1.z.string(),
-            requiredQuantity: zod_1.z.number().positive(),
-        }))
-            .optional(),
-    }),
+const { Router } = require('express');
+const workOrderController = require('../controllers/workOrder.controller');
+const { authenticate, requireRole } = require('../middlewares/auth');
+const { validate } = require('../middlewares/validate');
+const { z } = require('zod');
+
+const router = Router();
+
+const createWorkOrderSchema = z.object({
+  body: z.object({
+    locationId: z.string().min(1, 'Location ID is required'),
+    itemId: z.string().min(1, 'Item ID is required'),
+    requiredQuantity: z.number().positive('Required quantity must be greater than zero'),
+    assignedUserId: z.string().optional(),
+    notes: z.string().optional(),
+    materials: z
+      .array(
+        z.object({
+          materialItemId: z.string(),
+          requiredQuantity: z.number().positive(),
+        })
+      )
+      .optional(),
+  }),
 });
-const updateStatusSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        status: zod_1.z.enum(['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
-    }),
+
+const updateStatusSchema = z.object({
+  body: z.object({
+    status: z.enum(['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+  }),
 });
-// Calculate real-time stock shortage
-router.get('/stock-check', auth_1.authenticate, workOrder_controller_1.WorkOrderController.calculateStockCheck);
-// List and get details
-router.get('/', auth_1.authenticate, workOrder_controller_1.WorkOrderController.listWorkOrders);
-router.get('/:id', auth_1.authenticate, workOrder_controller_1.WorkOrderController.getWorkOrderById);
-// Create Work Order (Admin Only as per requirements: "Admin can create Work Orders")
-router.post('/', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN'), (0, validate_1.validate)(createWorkOrderSchema), workOrder_controller_1.WorkOrderController.createWorkOrder);
-// Update Status (Admin & Operations)
-router.patch('/:id/status', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN', 'OPERATIONS'), (0, validate_1.validate)(updateStatusSchema), workOrder_controller_1.WorkOrderController.updateStatus);
-exports.default = router;
+
+router.get('/stock-check/calculate', authenticate, workOrderController.calculateStockCheck);
+router.get('/:id', authenticate, workOrderController.getWorkOrderById);
+router.get('/', authenticate, workOrderController.listWorkOrders);
+
+router.post(
+  '/',
+  authenticate,
+  requireRole('ADMIN'),
+  validate(createWorkOrderSchema),
+  workOrderController.createWorkOrder
+);
+
+router.patch(
+  '/:id/status',
+  authenticate,
+  requireRole('ADMIN'),
+  validate(updateStatusSchema),
+  workOrderController.updateStatus
+);
+
+module.exports = router;

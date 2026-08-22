@@ -1,18 +1,20 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const auth_controller_1 = require("../controllers/auth.controller");
-const auth_1 = require("../middlewares/auth");
-const validate_1 = require("../middlewares/validate");
-const zod_1 = require("zod");
-const router = (0, express_1.Router)();
-const loginSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        email: zod_1.z.string().email('Invalid email address'),
-        password: zod_1.z.string().min(1, 'Password is required'),
-    }),
+const { Router } = require('express');
+const authController = require('../controllers/auth.controller');
+const { authenticate } = require('../middlewares/auth');
+const { validate } = require('../middlewares/validate');
+const { z } = require('zod');
+
+const router = Router();
+
+const loginSchema = z.object({
+  body: z.object({
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(1, 'Password is required'),
+  }),
 });
-router.post('/login', (0, validate_1.validate)(loginSchema), auth_controller_1.AuthController.login);
-router.get('/me', auth_1.authenticate, auth_controller_1.AuthController.getMe);
-router.get('/users', auth_1.authenticate, auth_controller_1.AuthController.listUsers);
-exports.default = router;
+
+router.post('/login', validate(loginSchema), authController.login);
+router.get('/me', authenticate, authController.getMe);
+router.get('/users', authenticate, authController.listUsers);
+
+module.exports = router;

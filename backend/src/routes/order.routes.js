@@ -1,34 +1,58 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const order_controller_1 = require("../controllers/order.controller");
-const auth_1 = require("../middlewares/auth");
-const validate_1 = require("../middlewares/validate");
-const zod_1 = require("zod");
-const router = (0, express_1.Router)();
-const createOrderSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        customerName: zod_1.z.string().min(1, 'Customer name is required'),
-        locationId: zod_1.z.string().min(1, 'locationId is required'),
-        items: zod_1.z
-            .array(zod_1.z.object({
-            itemId: zod_1.z.string().min(1, 'itemId is required'),
-            batchNumber: zod_1.z.string().optional(),
-            quantity: zod_1.z.number().positive('Quantity must be greater than zero'),
-            unitPrice: zod_1.z.number().nonnegative().optional(),
-        }))
-            .min(1, 'Order must contain at least one item'),
-    }),
+const { Router } = require('express');
+const orderController = require('../controllers/order.controller');
+const { authenticate, requireRole } = require('../middlewares/auth');
+const { validate } = require('../middlewares/validate');
+const { z } = require('zod');
+
+const router = Router();
+
+const createOrderSchema = z.object({
+  body: z.object({
+    customerName: z.string().min(1, 'Customer name is required'),
+    locationId: z.string().min(1, 'Location ID is required'),
+    items: z
+      .array(
+        z.object({
+          itemId: z.string().min(1, 'Item ID is required'),
+          batchNumber: z.string().optional(),
+          quantity: z.number().positive('Quantity must be greater than zero'),
+          unitPrice: z.number().nonnegative().optional(),
+        })
+      )
+      .min(1, 'At least one order item is required'),
+  }),
 });
-// View orders (Admin, Operations, Sales)
-router.get('/', auth_1.authenticate, order_controller_1.OrderController.listOrders);
-router.get('/:id', auth_1.authenticate, order_controller_1.OrderController.getOrderById);
-// Create Customer Order (Sales & Admin)
-router.post('/', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN', 'SALES'), (0, validate_1.validate)(createOrderSchema), order_controller_1.OrderController.createOrder);
-// Reserve Stock (Sales & Admin)
-router.post('/:id/reserve', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN', 'SALES'), order_controller_1.OrderController.reserveStock);
-// Cancel Order & Release Stock (Sales & Admin)
-router.post('/:id/cancel', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN', 'SALES'), order_controller_1.OrderController.cancelOrder);
-// Fulfill Order (Admin & Operations)
-router.post('/:id/fulfill', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN', 'OPERATIONS'), order_controller_1.OrderController.fulfillOrder);
-exports.default = router;
+
+router.get('/:id', authenticate, requireRole('ADMIN', 'SALES'), orderController.getOrderById);
+router.get('/', authenticate, requireRole('ADMIN', 'SALES'), orderController.listOrders);
+
+router.post(
+  '/',
+  authenticate,
+  requireRole('ADMIN', 'SALES'),
+  validate(createOrderSchema),
+  orderController.createOrder
+);
+
+router.post(
+  '/:id/reserve',
+  authenticate,
+  requireRole('ADMIN', 'SALES'),
+  orderController.reserveStock
+);
+
+router.post(
+  '/:id/cancel',
+  authenticate,
+  requireRole('ADMIN', 'SALES'),
+  orderController.cancelOrder
+);
+
+router.post(
+  '/:id/fulfill',
+  authenticate,
+  requireRole('ADMIN', 'SALES'),
+  orderController.fulfillOrder
+);
+
+module.exports = router;
