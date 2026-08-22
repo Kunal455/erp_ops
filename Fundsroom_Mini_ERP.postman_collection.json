@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Mini Operations ERP API Collection",
-    "description": "Comprehensive Postman collection with real payloads and environment variables for testing all Mini Operations ERP REST endpoints.",
+    "description": "Comprehensive Postman collection with 3-Role Signups & Logins, and end-to-end router testing across Inventory, Work Orders, Transfers, and Customer Orders.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -19,22 +19,22 @@
   ],
   "item": [
     {
-      "name": "1. Authentication",
+      "name": "1. Authentication (3 Role Signups & Logins)",
       "item": [
         {
-          "name": "Signup / Register New User",
+          "name": "1.1. Signup - Admin Role",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@fundsroom.com\",\n  \"password\": \"securepassword123\",\n  \"role\": \"OPERATIONS\"\n}"
+              "raw": "{\n  \"name\": \"Alice Admin\",\n  \"email\": \"admin.demo@fundsroom.com\",\n  \"password\": \"admin123\",\n  \"role\": \"ADMIN\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] }
           }
         },
         {
-          "name": "Login - Admin (admin@fundsroom.com)",
+          "name": "1.2. Login - Admin (Captures adminToken)",
           "event": [
             {
               "listen": "test",
@@ -43,6 +43,7 @@
                   "const json = pm.response.json();",
                   "if (json.data && json.data.token) {",
                   "  pm.collectionVariables.set('adminToken', json.data.token);",
+                  "  console.log('Saved adminToken');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -60,7 +61,19 @@
           }
         },
         {
-          "name": "Login - Operations (ops@fundsroom.com)",
+          "name": "1.3. Signup - Operations Role",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bob Operations\",\n  \"email\": \"ops.demo@fundsroom.com\",\n  \"password\": \"ops123\",\n  \"role\": \"OPERATIONS\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] }
+          }
+        },
+        {
+          "name": "1.4. Login - Operations (Captures opsToken)",
           "event": [
             {
               "listen": "test",
@@ -69,6 +82,7 @@
                   "const json = pm.response.json();",
                   "if (json.data && json.data.token) {",
                   "  pm.collectionVariables.set('opsToken', json.data.token);",
+                  "  console.log('Saved opsToken');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -86,7 +100,19 @@
           }
         },
         {
-          "name": "Login - Sales (sales@fundsroom.com)",
+          "name": "1.5. Signup - Sales Role",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Charlie Sales\",\n  \"email\": \"sales.demo@fundsroom.com\",\n  \"password\": \"sales123\",\n  \"role\": \"SALES\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] }
+          }
+        },
+        {
+          "name": "1.6. Login - Sales (Captures salesToken)",
           "event": [
             {
               "listen": "test",
@@ -95,6 +121,7 @@
                   "const json = pm.response.json();",
                   "if (json.data && json.data.token) {",
                   "  pm.collectionVariables.set('salesToken', json.data.token);",
+                  "  console.log('Saved salesToken');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -112,7 +139,7 @@
           }
         },
         {
-          "name": "Get Current User Profile (/me)",
+          "name": "1.7. Get Current Profile (/me)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
@@ -120,7 +147,7 @@
           }
         },
         {
-          "name": "List Users (Admin / All)",
+          "name": "1.8. List All System Users",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
@@ -130,10 +157,25 @@
       ]
     },
     {
-      "name": "2. Inventory & Warehousing",
+      "name": "2. Inventory Router (/api/inventory)",
       "item": [
         {
-          "name": "Get Warehouse Locations",
+          "name": "2.1. List Warehouse Locations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length >= 2) {",
+                  "  pm.collectionVariables.set('locNorthId', json.data[0].id);",
+                  "  pm.collectionVariables.set('locSouthId', json.data[1].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
@@ -141,7 +183,22 @@
           }
         },
         {
-          "name": "Get Items Master",
+          "name": "2.2. List Master Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length >= 2) {",
+                  "  pm.collectionVariables.set('itemSteelId', json.data[0].id);",
+                  "  pm.collectionVariables.set('itemMotorId', json.data[2] ? json.data[2].id : json.data[1].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
@@ -149,20 +206,15 @@
           }
         },
         {
-          "name": "Get Multi-Location Inventory (Calculated Available Stock)",
+          "name": "2.3. Get Multi-Location Inventory (Live Available Stock)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/inventory?search=",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "inventory"],
-              "query": [{ "key": "search", "value": "" }]
-            }
+            "url": { "raw": "{{baseUrl}}/api/inventory", "host": ["{{baseUrl}}"], "path": ["api", "inventory"] }
           }
         },
         {
-          "name": "Stock Inward (Stock-In)",
+          "name": "2.4. Stock Inward (Stock-In)",
           "request": {
             "method": "POST",
             "header": [
@@ -171,13 +223,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"itemId\": \"{{itemSteelId}}\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"batchNumber\": \"BAT-ST-003\",\n  \"quantity\": 150,\n  \"notes\": \"Supplier shipment receipt batch 003\"\n}"
+              "raw": "{\n  \"itemId\": \"{{itemSteelId}}\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"batchNumber\": \"BAT-ST-005\",\n  \"quantity\": 200,\n  \"notes\": \"New steel plate shipment from primary supplier\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/inventory/stock-in", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "stock-in"] }
           }
         },
         {
-          "name": "Stock Adjustment (Cycle Count)",
+          "name": "2.5. Stock Adjustment (Cycle Count)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -186,13 +238,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"itemId\": \"{{itemSteelId}}\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"batchNumber\": \"BAT-ST-001\",\n  \"newPhysicalQuantity\": 520,\n  \"notes\": \"Physical count audit adjustment\"\n}"
+              "raw": "{\n  \"itemId\": \"{{itemSteelId}}\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"batchNumber\": \"BAT-ST-001\",\n  \"newPhysicalQuantity\": 510,\n  \"notes\": \"Audit adjustment post physical cycle count\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/inventory/adjust", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "adjust"] }
           }
         },
         {
-          "name": "Get Inventory Transactions History (Audit Log)",
+          "name": "2.6. Get Stock Transactions History (Audit Log)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
@@ -202,10 +254,10 @@
       ]
     },
     {
-      "name": "3. Work Orders & Material Stock Check",
+      "name": "3. Work Orders Router (/api/work-orders)",
       "item": [
         {
-          "name": "Calculate Real-Time Shortage Formula",
+          "name": "3.1. Compute Shortage (Formula: max(Req - Avail, 0))",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
@@ -222,7 +274,21 @@
           }
         },
         {
-          "name": "Create Work Order (Admin Only)",
+          "name": "3.2. Create Work Order (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('workOrderId', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -231,13 +297,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"locationId\": \"{{locSouthId}}\",\n  \"itemId\": \"{{itemMotorId}}\",\n  \"requiredQuantity\": 20,\n  \"notes\": \"Produce 20x electric motors for Q3\"\n}"
+              "raw": "{\n  \"locationId\": \"{{locSouthId}}\",\n  \"itemId\": \"{{itemMotorId}}\",\n  \"requiredQuantity\": 15,\n  \"notes\": \"Production batch for industrial client\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/work-orders", "host": ["{{baseUrl}}"], "path": ["api", "work-orders"] }
           }
         },
         {
-          "name": "List All Work Orders",
+          "name": "3.3. List All Work Orders",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
@@ -245,7 +311,7 @@
           }
         },
         {
-          "name": "Update Work Order Status (ASSIGNED -> IN_PROGRESS)",
+          "name": "3.4. Update WO Status (ASSIGNED -> IN_PROGRESS)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -260,7 +326,7 @@
           }
         },
         {
-          "name": "Update Work Order Status (IN_PROGRESS -> COMPLETED)",
+          "name": "3.5. Update WO Status (IN_PROGRESS -> COMPLETED)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -277,18 +343,24 @@
       ]
     },
     {
-      "name": "4. Internal Warehouse Transfers",
+      "name": "4. Transfers Router (/api/transfers)",
       "item": [
         {
-          "name": "List Stock Transfers",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{opsToken}}" }],
-            "url": { "raw": "{{baseUrl}}/api/transfers", "host": ["{{baseUrl}}"], "path": ["api", "transfers"] }
-          }
-        },
-        {
-          "name": "Request Internal Transfer (Ops / Admin)",
+          "name": "4.1. Request Inter-Warehouse Transfer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('transferId', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -297,13 +369,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sourceLocationId\": \"{{locNorthId}}\",\n  \"destinationLocationId\": \"{{locSouthId}}\",\n  \"itemId\": \"{{itemSteelId}}\",\n  \"batchNumber\": \"BAT-ST-001\",\n  \"quantity\": 30\n}"
+              "raw": "{\n  \"sourceLocationId\": \"{{locNorthId}}\",\n  \"destinationLocationId\": \"{{locSouthId}}\",\n  \"itemId\": \"{{itemSteelId}}\",\n  \"batchNumber\": \"BAT-ST-001\",\n  \"quantity\": 20\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/transfers", "host": ["{{baseUrl}}"], "path": ["api", "transfers"] }
           }
         },
         {
-          "name": "Dispatch Transfer (Source stock decreases)",
+          "name": "4.2. Dispatch Transfer (Origin Stock Decreases)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{opsToken}}" }],
@@ -311,28 +383,42 @@
           }
         },
         {
-          "name": "Receive Transfer (Destination stock increases)",
+          "name": "4.3. Receive Transfer (Destination Stock Increases)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{opsToken}}" }],
             "url": { "raw": "{{baseUrl}}/api/transfers/{{transferId}}/receive", "host": ["{{baseUrl}}"], "path": ["api", "transfers", "{{transferId}}", "receive"] }
           }
+        },
+        {
+          "name": "4.4. List All Stock Transfers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{opsToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/transfers", "host": ["{{baseUrl}}"], "path": ["api", "transfers"] }
+          }
         }
       ]
     },
     {
-      "name": "5. Customer Orders & Stock Reservation",
+      "name": "5. Orders Router (/api/orders)",
       "item": [
         {
-          "name": "List Customer Orders",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
-            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
-          }
-        },
-        {
-          "name": "Create Customer Order (Status: DRAFT)",
+          "name": "5.1. Create Customer Order (Status: DRAFT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('orderId', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -341,13 +427,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerName\": \"Apex Machine Automation Corp\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"items\": [\n    {\n      \"itemId\": \"{{itemMotorId}}\",\n      \"batchNumber\": \"BAT-MOT-001\",\n      \"quantity\": 5,\n      \"unitPrice\": 1200\n    }\n  ]\n}"
+              "raw": "{\n  \"customerName\": \"Vanguard Manufacturing Systems\",\n  \"locationId\": \"{{locNorthId}}\",\n  \"items\": [\n    {\n      \"itemId\": \"{{itemMotorId}}\",\n      \"batchNumber\": \"BAT-MOT-001\",\n      \"quantity\": 5,\n      \"unitPrice\": 1500\n    }\n  ]\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
           }
         },
         {
-          "name": "Reserve Stock (Atomic Concurrency Safe)",
+          "name": "5.2. Reserve Order Stock (Row-Level Locking Transaction)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
@@ -355,7 +441,7 @@
           }
         },
         {
-          "name": "Fulfill Customer Order (Physical stock consumed)",
+          "name": "5.3. Fulfill Order (Consumes Physical & Reserved Stock)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
@@ -363,11 +449,11 @@
           }
         },
         {
-          "name": "Cancel Order (Release reserved stock)",
+          "name": "5.4. List Customer Orders",
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }],
-            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "cancel"] }
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
           }
         }
       ]
