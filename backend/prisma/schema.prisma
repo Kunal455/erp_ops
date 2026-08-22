@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         String    // "ADMIN" | "OPERATIONS" | "SALES"
+  locationId   String?
+  location     Location? @relation(fields: [locationId], references: [id])
+  
+  assignedWorkOrders WorkOrder[] @relation("AssignedWorkOrders")
+  createdTransfers   StockTransfer[] @relation("CreatedTransfers")
+  createdOrders      CustomerOrder[] @relation("CreatedOrders")
+  transactions       InventoryTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  address   String?
+  
+  users                User[]
+  inventories          Inventory[]
+  sourceTransfers      StockTransfer[] @relation("SourceLocation")
+  destinationTransfers StockTransfer[] @relation("DestinationLocation")
+  workOrders           WorkOrder[]
+  customerOrders       CustomerOrder[]
+  transactions         InventoryTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  sku         String   @unique
+  name        String
+  category    String   // "Raw Material", "Finished Goods", "Components", etc.
+  uom         String   // Unit of measure (e.g. "PCS", "KG", "BOX")
+  description String?
+
+  inventories          Inventory[]
+  workOrders           WorkOrder[]
+  stockTransfers       StockTransfer[]
+  orderItems           CustomerOrderItem[]
+  workOrderMaterials   WorkOrderMaterial[]
+  transactions         InventoryTransaction[]
+  bomComponents        BillOfMaterial[] @relation("BOMComponents")
+  bomParents           BillOfMaterial[] @relation("BOMParents")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BillOfMaterial {
+  id              String @id @default(cuid())
+  parentItemId    String
+  parentItem      Item   @relation("BOMParents", fields: [parentItemId], references: [id], onDelete: Cascade)
+  componentItemId String
+  componentItem   Item   @relation("BOMComponents", fields: [componentItemId], references: [id], onDelete: Cascade)
+  quantityPerUnit Float  // Quantity of component needed per 1 parent item
+
+  @@unique([parentItemId, componentItemId])
+}
+
+model Inventory {
+  id               String   @id @default(cuid())
+  itemId           String
+  item             Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  locationId       String
+  location         Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  batchNumber      String
+  physicalQuantity Float    @default(0)
+  reservedQuantity Float    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([itemId, locationId, batchNumber])
+}
+
+model InventoryTransaction {
+  id                   String    @id @default(cuid())
+  itemId               String
+  item                 Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  locationId           String
+  location             Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  batchNumber          String
+  type                 String    // "STOCK_IN" | "ADJUSTMENT" | "TRANSFER_DISPATCH" | "TRANSFER_RECEIVE" | "RESERVE" | "RELEASE" | "CONSUME"
+  quantity             Float     // positive or negative delta
+  physicalBalanceAfter Float?
+  reservedBalanceAfter Float?
+  referenceType        String?   // "WORK_ORDER" | "STOCK_TRANSFER" | "CUSTOMER_ORDER" | "MANUAL"
+  referenceId          String?
+  performedById        String?
+  performedBy          User?     @relation(fields: [performedById], references: [id])
+  notes                String?
+
+  createdAt DateTime @default(now())
+}
+
+model WorkOrder {
+  id               String   @id @default(cuid())
+  workOrderNumber  String   @unique
+  locationId       String
+  location         Location @relation(fields: [locationId], references: [id])
+  itemId           String
+  item             Item     @relation(fields: [itemId], references: [id])
+  requiredQuantity Float
+  assignedUserId   String?
+  assignedUser     User?    @relation("AssignedWorkOrders", fields: [assignedUserId], references: [id])
+  status           String   @default("ASSIGNED") // "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
+  notes            String?
+
+  materials WorkOrderMaterial[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkOrderMaterial {
+  id               String    @id @default(cuid())
+  workOrderId      String
+  workOrder        WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  materialItemId   String
+  materialItem     Item      @relation(fields: [materialItemId], references: [id])
+  requiredQuantity Float
+  consumedQuantity Float     @default(0)
+
+  @@unique([workOrderId, materialItemId])
+}
+
+model StockTransfer {
+  id                    String    @id @default(cuid())
+  transferNumber        String    @unique
+  sourceLocationId      String
+  sourceLocation        Location  @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  destinationLocationId String
+  destinationLocation   Location  @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
+  itemId                String
+  item                  Item      @relation(fields: [itemId], references: [id])
+  batchNumber           String
+  quantity              Float
+  status                String    @default("REQUESTED") // "REQUESTED" | "DISPATCHED" | "RECEIVED" | "CANCELLED"
+  createdById           String?
+  createdBy             User?     @relation("CreatedTransfers", fields: [createdById], references: [id])
+  dispatchedAt          DateTime?
+  receivedAt            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomerOrder {
+  id          String   @id @default(cuid())
+  orderNumber String   @unique
+  customerName String
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  status      String   @default("DRAFT") // "DRAFT" | "RESERVED" | "FULFILLED" | "CANCELLED"
+  totalAmount Float    @default(0)
+  createdById String?
+  createdBy   User?    @relation("CreatedOrders", fields: [createdById], references: [id])
+
+  items CustomerOrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomerOrderItem {
+  id              String        @id @default(cuid())
+  customerOrderId String
+  customerOrder   CustomerOrder @relation(fields: [customerOrderId], references: [id], onDelete: Cascade)
+  itemId          String
+  item            Item          @relation(fields: [itemId], references: [id])
+  batchNumber     String?
+  quantity        Float
+  reservedQuantity Float        @default(0)
+  unitPrice       Float         @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
