@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../src/app').default || require('../src/app');
+const app = require('../src/app');
 const { prisma } = require('../src/config');
 const setup = require('./setup');
 

@@ -1,19 +1,21 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+const dotenv = require('dotenv');
+const { PrismaClient } = require('@prisma/client');
+
+dotenv.config();
+
+const config = {
+  port: parseInt(process.env.PORT || '5000', 10),
+  nodeEnv: process.env.NODE_ENV || 'development',
+  jwtSecret: process.env.JWT_SECRET || 'fundsroom_erp_jwt_secret_key_2026',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  databaseUrl: process.env.DATABASE_URL || 'mysql://erp_user:erp_secret_pass@localhost:3306/fundsroom_erp',
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.prisma = exports.config = void 0;
-const client_1 = require("@prisma/client");
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-exports.config = {
-    port: parseInt(process.env.PORT || '5000', 10),
-    jwtSecret: process.env.JWT_SECRET || 'mini-operations-erp-super-secret-key-2026',
-    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    nodeEnv: process.env.NODE_ENV || 'development',
-    databaseUrl: process.env.DATABASE_URL || 'file:./dev.db',
-};
-exports.prisma = new client_1.PrismaClient({
-    log: exports.config.nodeEnv === 'development' ? ['warn', 'error'] : ['error'],
+
+const prisma = new PrismaClient({
+  log: config.nodeEnv === 'development' ? ['warn', 'error'] : ['error'],
 });
+
+module.exports = {
+  config,
+  prisma,
+};

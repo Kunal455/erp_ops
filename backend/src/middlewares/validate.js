@@ -1,22 +1,23 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.validate = void 0;
-const validate = (schema) => {
-    return async (req, res, next) => {
-        try {
-            const parsed = await schema.parseAsync({
-                body: req.body,
-                query: req.query,
-                params: req.params,
-            });
-            req.body = parsed.body ?? req.body;
-            req.query = parsed.query ?? req.query;
-            req.params = parsed.params ?? req.params;
-            next();
-        }
-        catch (error) {
-            next(error);
-        }
-    };
+function validate(schema) {
+  return async function (req, res, next) {
+    try {
+      const parsed = await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+
+      if (parsed.body !== undefined) req.body = parsed.body;
+      if (parsed.query !== undefined) req.query = parsed.query;
+      if (parsed.params !== undefined) req.params = parsed.params;
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+module.exports = {
+  validate,
 };
-exports.validate = validate;
