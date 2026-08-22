@@ -24,6 +24,17 @@ const swaggerDocument = {
       },
     },
     schemas: {
+      SignupDto: {
+        type: 'object',
+        required: ['name', 'email', 'password'],
+        properties: {
+          name: { type: 'string', example: 'John Doe' },
+          email: { type: 'string', example: 'john.doe@fundsroom.com' },
+          password: { type: 'string', example: 'password123' },
+          role: { type: 'string', enum: ['ADMIN', 'OPERATIONS', 'SALES'], example: 'OPERATIONS' },
+          locationId: { type: 'string', example: 'cm...location' },
+        },
+      },
       LoginDto: {
         type: 'object',
         required: ['email', 'password'],
@@ -40,6 +51,23 @@ const swaggerDocument = {
     },
   ],
   paths: {
+    '/api/auth/signup': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Register a new user account with role and optional default warehouse',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/SignupDto' } },
+          },
+        },
+        responses: {
+          201: { description: 'User registered successfully with JWT token' },
+          400: { description: 'Validation error' },
+          409: { description: 'Email already exists' },
+        },
+      },
+    },
     '/api/auth/login': {
       post: {
         tags: ['Authentication'],

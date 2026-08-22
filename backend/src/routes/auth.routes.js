@@ -6,6 +6,16 @@ const { z } = require('zod');
 
 const router = Router();
 
+const signupSchema = z.object({
+  body: z.object({
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    role: z.enum(['ADMIN', 'OPERATIONS', 'SALES']).optional(),
+    locationId: z.string().optional(),
+  }),
+});
+
 const loginSchema = z.object({
   body: z.object({
     email: z.string().email('Invalid email address'),
@@ -13,6 +23,8 @@ const loginSchema = z.object({
   }),
 });
 
+router.post('/signup', validate(signupSchema), authController.signup);
+router.post('/register', validate(signupSchema), authController.signup);
 router.post('/login', validate(loginSchema), authController.login);
 router.get('/me', authenticate, authController.getMe);
 router.get('/users', authenticate, authController.listUsers);

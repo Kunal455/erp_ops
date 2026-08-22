@@ -643,4 +643,66 @@ describe('Mini Operations ERP - Mandatory Verification Test Suite (JavaScript)',
       expect(srcInv?.physicalQuantity).toBe(10);
     });
   });
+
+  /**
+   * TEST 10: Authentication & User Registration (Signup)
+   */
+  describe('User Registration (Signup) & Authentication Lifecycle', () => {
+    it('should register a new user successfully and return a valid JWT token', async () => {
+      const res = await request(app)
+        .post('/api/auth/signup')
+        .send({
+          name: 'Dana NewUser',
+          email: 'dana.new@fundsroom.com',
+          password: 'securepassword123',
+          role: 'OPERATIONS',
+          locationId: setup.locNorth.id,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('token');
+      expect(res.body.data.user.email).toBe('dana.new@fundsroom.com');
+      expect(res.body.data.user.role).toBe('OPERATIONS');
+
+      // Verify user can immediately log in with the new credentials
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'dana.new@fundsroom.com',
+          password: 'securepassword123',
+        });
+
+      expect(loginRes.status).toBe(200);
+      expect(loginRes.body.data.token).toBeDefined();
+    });
+
+    it('should reject signup with duplicate email address (409 Conflict)', async () => {
+      const res = await request(app)
+        .post('/api/auth/signup')
+        .send({
+          name: 'Duplicate Admin',
+          email: 'admin.test@fundsroom.com',
+          password: 'password123',
+          role: 'ADMIN',
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('already exists');
+    });
+
+    it('should reject signup with short password (< 6 chars)', async () => {
+      const res = await request(app)
+        .post('/api/auth/signup')
+        .send({
+          name: 'Short Pass',
+          email: 'shortpass@fundsroom.com',
+          password: '123',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
 });

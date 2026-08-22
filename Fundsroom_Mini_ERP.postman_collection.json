@@ -22,6 +22,18 @@
       "name": "1. Authentication",
       "item": [
         {
+          "name": "Signup / Register New User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@fundsroom.com\",\n  \"password\": \"securepassword123\",\n  \"role\": \"OPERATIONS\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] }
+          }
+        },
+        {
           "name": "Login - Admin (admin@fundsroom.com)",
           "event": [
             {

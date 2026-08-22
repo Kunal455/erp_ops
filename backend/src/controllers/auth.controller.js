@@ -1,5 +1,25 @@
 const authService = require('../services/auth.service');
 
+async function signup(req, res, next) {
+  try {
+    const { name, email, password, role, locationId } = req.body;
+    const result = await authService.signup({
+      name,
+      email,
+      password,
+      role,
+      locationId,
+    });
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function login(req, res, next) {
   try {
     const { email, password } = req.body;
@@ -39,6 +59,7 @@ async function listUsers(req, res, next) {
 }
 
 module.exports = {
+  signup,
   login,
   getMe,
   listUsers,
