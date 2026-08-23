@@ -15,23 +15,39 @@ export const App = () => {
 
       {/* Authenticated Dashboard Shell */}
       <Route element={<DashboardLayout />}>
-        {/* Inventory accessible to all roles */}
-        <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATIONS', 'SALES']} />}>
+        {/* Inventory accessible to ADMIN, OPERATIONS_USER, and SALES_USER */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['ADMIN', 'OPERATIONS_USER', 'SALES_USER']}
+            />
+          }
+        >
           <Route path="/inventory" element={<InventoryPage />} />
         </Route>
 
-        {/* Work Orders accessible to Admin and Operations */}
-        <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATIONS']} />}>
+        {/* Work Orders accessible to ADMIN (manage) and OPERATIONS_USER (view & shortage) */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'OPERATIONS_USER']} />
+          }
+        >
           <Route path="/work-orders" element={<WorkOrdersPage />} />
         </Route>
 
-        {/* Internal Transfers accessible to Admin and Operations */}
-        <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATIONS']} />}>
+        {/* Internal Transfers accessible to OPERATIONS_USER (manage) and ADMIN (view) */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'OPERATIONS_USER']} />
+          }
+        >
           <Route path="/transfers" element={<TransfersPage />} />
         </Route>
 
-        {/* Customer Orders accessible to Admin and Sales */}
-        <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SALES']} />}>
+        {/* Customer Orders accessible to SALES_USER (manage) and ADMIN (view) */}
+        <Route
+          element={<ProtectedRoute allowedRoles={['ADMIN', 'SALES_USER']} />}
+        >
           <Route path="/customer-orders" element={<CustomerOrdersPage />} />
         </Route>
       </Route>

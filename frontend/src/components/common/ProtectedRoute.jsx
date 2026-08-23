@@ -4,12 +4,12 @@ import { useAuth } from '../../context/AuthContext';
 import { ShieldAlert } from 'lucide-react';
 
 export const ProtectedRoute = ({ allowedRoles }) => {
-  const { user, loading } = useAuth();
+  const { user, role, hasRole, loading } = useAuth();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -18,18 +18,18 @@ export const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !hasRole(allowedRoles)) {
     return (
-      <div className="p-8 max-w-2xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-4">
-          <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
-            <ShieldAlert className="w-6 h-6" />
+      <div className="p-8 max-w-2xl mx-auto mt-12">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center space-y-4 shadow-xs">
+          <div className="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-7 h-7" />
           </div>
-          <h2 className="text-xl font-bold text-red-900">403 - Access Forbidden</h2>
+          <h2 className="text-2xl font-bold font-serif text-red-900">403 - Access Forbidden</h2>
           <p className="text-sm text-red-700">
-            Your current role (<strong className="uppercase">{user.role}</strong>) does not have authorization to access this module.
+            Your current active role (<strong className="uppercase font-mono">{role}</strong>) does not have authorization to access this module.
           </p>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-slate-500 font-mono">
             Allowed role(s): {allowedRoles.join(', ')}
           </div>
         </div>
