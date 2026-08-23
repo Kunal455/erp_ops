@@ -4,7 +4,7 @@
   "description": "Mini Operations ERP Backend API with Relational DB, Role-Based Auth, Work Orders, Transfers and Concurrency-Safe Reservations",
   "main": "src/server.js",
   "scripts": {
-    "dev": "node --watch src/server.js",
+    "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
