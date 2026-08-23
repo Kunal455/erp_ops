@@ -1,379 +1,223 @@
-# Mini Operations ERP — Production Full-Stack Technical Case Study
+# ⚡ FundsERP — Operations & Supply Chain Management System
 
-A production-oriented Operations ERP application engineered with a focus on relational database consistency, row-level concurrency control, strict role-based access control (RBAC), and automated business workflows.
-
----
-
-## 1. Project Overview
-
-The **Mini Operations ERP** is an end-to-end operations platform designed to simulate industrial manufacturing and multi-warehouse supply chain operations. It manages inventory across distributed facilities, schedules work orders, computes material shortages in real-time, executes atomic inter-warehouse stock transfers, and processes customer sales orders with race-condition-proof stock reservations.
+A production-grade, full-stack Operations ERP application engineered with a focus on relational database consistency, strict Role-Based Access Control (RBAC), atomic multi-warehouse stock transfers, real-time BOM shortage calculations, and race-condition-proof inventory reservations.
 
 ---
 
-## 2. Business Workflow
+## 🌐 Live Deployments & Quick Links
 
-```
-Inventory (Warehouse stock per item/location/batch)
-    ↓
-Work Order (Admin creates production assembly job)
-    ↓
-Material Stock Check (Backend computes available stock vs required)
-    ↓
-Enough Stock?
-    ↓
-YES ──→ Continue assembly (ASSIGNED → IN_PROGRESS → COMPLETED)
-    ↓
-NO  ──→ Calculate Shortage: Shortage = max(Required - Available, 0)
-          ↓
-     Internal Stock Transfer Request (Origin → Destination)
-          ↓
-      Dispatch (Source physical decreases; Destination remains unchanged)
-          ↓
-       Receive (Destination physical increases; prevents double receipt)
-          ↓
-    Destination Stock Ready
-          ↓
-Customer Order (Sales user enters customer line items)
-          ↓
-Stock Reservation (Atomic row-level locked transaction: reservedQuantity increases, available decreases)
-```
+| Component | Provider / Platform | Live URL / Endpoint |
+| :--- | :--- | :--- |
+| **Frontend Application** | **Vercel** | [https://fundsroom-erp.vercel.app](https://fundsroom-erp.vercel.app) |
+| **Backend REST API** | **Render** | [https://fundsroom-erp-backend.onrender.com](https://fundsroom-erp-backend.onrender.com) |
+| **API Health Check** | **Render** | [https://fundsroom-erp-backend.onrender.com/health](https://fundsroom-erp-backend.onrender.com/health) |
+| **Swagger OpenAPI Docs** | **Render** | [https://fundsroom-erp-backend.onrender.com/api/docs](https://fundsroom-erp-backend.onrender.com/api/docs) |
+| **Cloud Database** | **TiDB Cloud** | Managed Serverless MySQL 8.0 |
+| **GitHub Repository** | **GitHub** | [https://github.com/Kunal455/erp_ops](https://github.com/Kunal455/erp_ops) |
 
 ---
 
-## 3. Tech Stack
+## 🔑 Demo & Test Accounts
 
-- **Frontend**: React 18, TypeScript, Vite, React Router v6, Axios, Tailwind CSS, Lucide Icons.
-- **Backend**: Node.js, Express.js, TypeScript.
-- **Database & Persistence**: MySQL 8.0 / Relational DB via **Prisma ORM**.
-- **Authentication & Security**: JWT (JSON Web Tokens), bcrypt password hashing, HTTP Bearer tokens.
-- **Validation**: Zod (strict request payload, query, and parameter schema enforcement).
-- **Testing**: Jest + Supertest (comprehensive integration, RBAC, lifecycle, and concurrency race condition test suites).
-- **API Documentation**: OpenAPI 3.0 / Swagger UI mounted at `/api/docs`.
-- **Infrastructure**: Docker & Docker Compose for containerized MySQL persistence and Adminer GUI.
+The system comes pre-seeded with dedicated accounts representing the three distinct operational roles:
+
+| Role | Email | Password | Primary Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **`ADMIN`** | `kk6547015@gmail.com` | `12345678` | Work Orders (Create, Assign, Status State Machine), Material Shortage Analysis, System Visibility |
+| **`ADMIN` (Demo)** | `admin@erp.com` | `admin123` | Secondary Admin Account |
+| **`OPERATIONS_USER`** | `operations@erp.com` | `operations123` | Inventory Management (Stock Inward, Adjust), Stock Transfers (Create, Dispatch, Receive), View Shortages |
+| **`SALES_USER`** | `sales@erp.com` | `sales123` | Customer Orders (Create Challans, Line Items), Concurrency-Safe Stock Reservations |
 
 ---
 
-## 4. Architecture
+## 🛡️ Role-Based Access Control (RBAC) Matrix
+
+The system enforces strict authorization at the backend route middleware layer via `requireAuth` and `requireRole(...)`. Unauthorized operations return `401 Unauthorized`, and unauthorized roles return `403 Forbidden`.
+
+| Operational Action | `ADMIN` | `OPERATIONS_USER` | `SALES_USER` | Backend Route & Guard |
+| :--- | :---: | :---: | :---: | :--- |
+| **User Authentication** | ✅ | ✅ | ✅ | `POST /api/auth/login`, `GET /api/auth/me` |
+| **View Inventory Breakdown** | ✅ | ✅ | ✅ | `GET /api/inventory` |
+| **Modify Inventory (Inward / Adjust)** | ❌ 403 | ✅ | ❌ 403 | `POST /api/inventory/stock-in`, `PATCH /api/inventory/adjust` |
+| **View Work Orders** | ✅ | ✅ | ❌ 403 | `GET /api/work-orders` |
+| **Create Work Order** | ✅ | ❌ 403 | ❌ 403 | `POST /api/work-orders` |
+| **Update Work Order Status** | ✅ | ❌ 403 | ❌ 403 | `PATCH /api/work-orders/:id/status` |
+| **View Material Shortages** | ✅ | ✅ | ❌ 403 | `GET /api/work-orders/stock-check/calculate` |
+| **View Internal Transfers** | ✅ | ✅ | ❌ 403 | `GET /api/transfers` |
+| **Create Internal Transfer** | ❌ 403 | ✅ | ❌ 403 | `POST /api/transfers` |
+| **Dispatch Stock Transfer** | ❌ 403 | ✅ | ❌ 403 | `POST /api/transfers/:id/dispatch` |
+| **Receive Stock Transfer** | ❌ 403 | ✅ | ❌ 403 | `POST /api/transfers/:id/receive` |
+| **View Customer Orders** | ✅ | ❌ 403 | ✅ | `GET /api/orders` |
+| **Create Customer Order** | ❌ 403 | ❌ 403 | ✅ | `POST /api/orders` |
+| **Reserve Customer Stock** | ❌ 403 | ❌ 403 | ✅ | `POST /api/orders/:id/reserve` |
+
+---
+
+## ⚙️ Core Architecture & Technical Highlights
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                 React SPA (Vite + TypeScript)               │
-│  - AuthContext (JWT)  - Role Guards  - Responsive Tailwind  │
+│              React SPA Frontend (Vite + Tailwind)           │
+│  - AuthContext (JWT)  - Role Guards  - Responsive UI        │
 └──────────────────────────────┬──────────────────────────────┘
                                │ JSON / REST APIs (Axios)
 ┌──────────────────────────────▼──────────────────────────────┐
-│              Express.js API Gateway & Middlewares           │
-│  - JWT Authenticate  - Role RBAC  - Zod Request Validator   │
+│           Express.js API Gateway & Middlewares              │
+│  - JWT Bearer Auth   - Role RBAC   - Zod Schema Validation  │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│                  Service Layer (Business Logic)             │
+│             Service Layer (Pure JS Business Logic)          │
 │  - InventoryService   - WorkOrderService   - TransferService│
 │  - OrderService       - AuthService                         │
 └──────────────────────────────┬──────────────────────────────┘
                                │ Prisma Client / Transactions
 ┌──────────────────────────────▼──────────────────────────────┐
-│                 MySQL 8.0 Relational Database                │
-│  - ACID Transactions  - Row-Level Locking (SELECT FOR UPDATE)│
+│                MySQL 8.0 / TiDB Cloud Database              │
+│  - ACID Transactions  - Compare-And-Swap (CAS) Concurrency  │
 │  - Foreign Keys       - Unique Multi-Column Indexes         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
----
+### 1. Concurrency & Race-Condition Safe Stock Reservations
+When available stock is limited, simultaneous reservation requests by multiple sales representatives are handled safely through atomic transactions with Compare-And-Swap (CAS) bounds:
+$$\text{availableQuantity} = \text{physicalQuantity} - \text{reservedQuantity}$$
+Over-reservation is rejected with a descriptive error.
 
-## 5. Folder Structure
+### 2. Two-Phase Verified Inter-Warehouse Stock Transfers
+- **REQUESTED**: Transfer created. No inventory moves between warehouses.
+- **DISPATCHED**: Source inventory `physicalQuantity` decreases atomically. Destination stock is untouched because materials are in transit.
+- **RECEIVED**: Destination inventory `physicalQuantity` increases upon arrival. Double-receipt is rejected (`409 Conflict`).
 
-```
-Fundsroom2/
-├── docker-compose.yml             # MySQL 8.0 and Adminer container services
-├── README.md                      # Complete system documentation
-├── backend/
-│   ├── .env.example
-│   ├── .env                       # Local environment variables
-│   ├── jest.config.js             # Jest test runner configuration
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── prisma/
-│   │   ├── schema.prisma          # Relational Prisma schema
-│   │   └── seed.ts                # Database seed script for roles, items, and stock
-│   ├── src/
-│   │   ├── config/                # Environment config and Prisma singleton
-│   │   ├── controllers/           # HTTP Request/Response handlers
-│   │   ├── middlewares/           # JWT, Role RBAC, Zod, and Error Handler
-│   │   ├── routes/                # Express API route definitions
-│   │   ├── services/              # Transactional business logic
-│   │   ├── utils/                 # Structured errors and helpers
-│   │   ├── swagger.ts             # Swagger OpenAPI 3.0 documentation
-│   │   ├── app.ts                 # Express application pipeline
-│   │   └── server.ts              # HTTP Server entrypoint
-│   └── tests/
-│       ├── setup.ts               # Test database seeding and teardown
-│       └── erp.test.ts            # Integration and Concurrency test suite
-└── frontend/
-    ├── package.json
-    ├── tsconfig.json
-    ├── vite.config.ts             # Vite config with backend API proxy
-    ├── tailwind.config.js
-    ├── index.html
-    └── src/
-        ├── api/                   # Axios HTTP client with JWT interceptor
-        ├── context/               # AuthContext state and role helpers
-        ├── components/common/     # Navbar, Sidebar, ProtectedRoute
-        ├── layouts/               # DashboardLayout shell
-        ├── pages/                 # 5 Core Screens (Login, Inventory, WO, Transfer, Order)
-        ├── types/                 # Frontend domain TypeScript definitions
-        ├── App.tsx                # Route tree
-        └── main.tsx
-```
+### 3. Automated BOM Material Shortage Calculation
+When an Admin schedules a production Work Order for finished goods (e.g. Electric Motor), the system calculates component requirements based on the Bill of Materials (BOM) and flags shortages:
+$$\text{Shortage} = \max(\text{Required Quantity} - \text{Available Quantity}, 0)$$
 
 ---
 
-## 6. Database Setup
+## 🧪 Automated Testing Suite (25/25 Passing)
 
-The application uses **Prisma ORM** with a fully normalized relational schema. To initialize the database:
-
-```bash
-cd backend
-npx prisma generate
-npx prisma db push
-npx prisma db seed
-```
-
----
-
-## 7. MySQL Setup (Docker Compose)
-
-Start the containerized MySQL 8.0 database and Adminer web interface using Docker Compose:
-
-```bash
-# From the project root
-docker compose up -d
-```
-
-- **MySQL Port**: `3306`
-- **Database**: `fundsroom_erp`
-- **User**: `erp_user`
-- **Password**: `erp_password123`
-- **Adminer DB Tool**: `http://localhost:8080`
-
----
-
-## 8. Environment Variables
-
-Create `.env` in the `backend/` directory:
-
-```env
-PORT=5000
-DATABASE_URL="file:./dev.db" # Or mysql://erp_user:erp_password123@localhost:3306/fundsroom_erp
-JWT_SECRET="mini-operations-erp-super-secret-key-2026"
-JWT_EXPIRES_IN="7d"
-NODE_ENV="development"
-CLIENT_URL="http://localhost:5173"
-```
-
----
-
-## 9. Prisma Setup & 10. Migrations
-
-```bash
-# Push schema updates to database
-cd backend
-npx prisma db push
-
-# (Optional) Generate a named migration
-npx prisma migrate dev --name init
-```
-
----
-
-## 11. Seed Data
-
-To populate the database with default locations, master items, BOM relations, inventory batches, and user roles:
-
-```bash
-cd backend
-npm run prisma:seed
-```
-
-### Pre-configured Test Accounts:
-| Role | Email | Password | Allowed Modules |
-| :--- | :--- | :--- | :--- |
-| **ADMIN** | `admin@fundsroom.com` | `admin123` | All modules, Work Order creation, Status management |
-| **OPERATIONS** | `ops@fundsroom.com` | `ops123` | Inventory Stock-In, Internal Transfers Dispatch & Receive |
-| **SALES** | `sales@fundsroom.com` | `sales123` | Customer Orders creation, Stock Reservations |
-
----
-
-## 12. Running Backend
-
-```bash
-cd backend
-npm run dev
-# Backend server runs at http://localhost:5000
-# Swagger docs at http://localhost:5000/api/docs
-```
-
----
-
-## 13. Running Frontend
-
-```bash
-cd frontend
-npm run dev
-# Frontend runs at http://localhost:5173
-```
-
----
-
-## 14. Running Tests
-
-The test suite runs with **Jest and Supertest**, verifying all mandatory business rules and race conditions:
+The backend includes a comprehensive Jest test suite verifying the complete RBAC permission matrix, lifecycle state machines, and concurrency safety:
 
 ```bash
 cd backend
 npm test
 ```
 
-### Test Coverage Highlights:
-- **Test 1**: Cannot reserve more than available inventory.
-- **Test 2**: Cannot transfer more than available inventory.
-- **Test 3**: Destination stock increases only after transfer receipt (source reduces on dispatch).
-- **Test 4**: Same transfer cannot be received twice (double-receive protection).
-- **Test 5**: Role-based authorization enforcement (403 Forbidden for restricted endpoints).
-- **Test 6**: Simultaneous parallel reservation race condition safety (`SELECT FOR UPDATE`).
-- **Test 7**: Work Order Shortage formula calculation $\max(\text{Required} - \text{Available}, 0)$ & sequential state machine transitions (`ASSIGNED` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `COMPLETED`).
-- **Test 8**: Input validation and negative balance rejection.
-- **Test 9**: Concurrent stock transfer dispatch race condition safety.
+```text
+PASS tests/erp.test.js
+  Mini Operations ERP - Role-Based Authorization & Verification Test Suite
+    Permission Matrix: Role-Based Authorization Tests
+      √ 1. ADMIN can create Work Order
+      √ 2. OPERATIONS_USER cannot create Work Order (403 Forbidden)
+      √ 3. SALES_USER cannot create Work Order (403 Forbidden)
+      √ 4. OPERATIONS_USER can modify Inventory (stock-in & adjust)
+      √ 5. SALES_USER cannot modify Inventory (403 Forbidden)
+      √ 6. OPERATIONS_USER can dispatch Transfer
+      √ 7. SALES_USER cannot dispatch Transfer (403 Forbidden)
+      √ 8. OPERATIONS_USER can receive Transfer
+      √ 9. SALES_USER cannot receive Transfer (403 Forbidden)
+      √ 10. SALES_USER can create Customer Order
+      √ 11. SALES_USER can reserve stock
+      √ 12. ADMIN cannot reserve stock (403 Forbidden)
+      √ 13. Unauthenticated user receives 401 Unauthorized
+      √ 14. Authenticated user with wrong role receives 403 Forbidden
+    Mandatory Test: Inventory Reservation Bounds
+      √ should REJECT reservation when requested quantity exceeds available inventory
+    Mandatory Test: Transfer Lifecycle & Double-Receipt Prevention
+      √ reduces source on dispatch, keeps destination untouched before receipt, and increases destination on receipt
+      √ rejects double-receipt on already received transfer
+    Concurrency & Race-Condition Safety
+      √ ensures two simultaneous reservation requests cannot exceed available inventory
+      √ ensures two simultaneous dispatches cannot over-draw source physical inventory
+    Work Order Shortage Calculation & Status State Machine
+      √ calculates shortage accurately: shortage = max(required - available, 0)
+      √ enforces sequential status transitions: ASSIGNED -> IN_PROGRESS -> COMPLETED
+    User Registration & Authentication Lifecycle
+      √ should register a new user successfully and return a valid JWT token
+      √ should reject public signup creating an ADMIN account (403 Forbidden)
+      √ should reject signup with duplicate email address (409 Conflict)
+      √ should reject signup with short password (< 6 chars)
 
----
-
-## 15. Swagger / OpenAPI Documentation
-
-Interactive Swagger OpenAPI 3.0 documentation is served at:
-`http://localhost:5000/api/docs`
-
----
-
-## 16. Authentication & 17. Roles (RBAC Matrix)
-
-| Endpoint | Method | Admin | Operations | Sales | Unauthenticated |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| `POST /api/auth/login` | POST | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `GET /api/auth/me` | GET | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: 401 |
-| `GET /api/inventory` | GET | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: 401 |
-| `POST /api/inventory/stock-in` | POST | :white_check_mark: | :white_check_mark: | :x: 403 | :x: 401 |
-| `GET /api/work-orders` | GET | :white_check_mark: | :white_check_mark: | :x: 403 | :x: 401 |
-| `POST /api/work-orders` | POST | :white_check_mark: | :x: 403 | :x: 403 | :x: 401 |
-| `PATCH /api/work-orders/:id/status`| PATCH | :white_check_mark: | :x: 403 | :x: 403 | :x: 401 |
-| `GET /api/transfers` | GET | :white_check_mark: | :white_check_mark: | :x: 403 | :x: 401 |
-| `POST /api/transfers` | POST | :white_check_mark: | :white_check_mark: | :x: 403 | :x: 401 |
-| `POST /api/transfers/:id/dispatch` | POST | :white_check_mark: | :white_check_mark: | :x: 403 | :x: 401 |
-| `POST /api/transfers/:id/receive` | POST | :white_check_mark: | :white_check_mark: | :x: 403 | :x: 401 |
-| `GET /api/orders` | GET | :white_check_mark: | :x: 403 | :white_check_mark: | :x: 401 |
-| `POST /api/orders` | POST | :white_check_mark: | :x: 403 | :white_check_mark: | :x: 401 |
-| `POST /api/orders/:id/reserve` | POST | :white_check_mark: | :x: 403 | :white_check_mark: | :x: 401 |
-
----
-
-## 18. Inventory Calculation & Invariants
-
-$$\text{availableQuantity} = \text{physicalQuantity} - \text{reservedQuantity}$$
-$$\text{shortage} = \max(\text{requiredQuantity} - \text{availableQuantity}, 0)$$
-
-- **Invariant 1**: $\text{physicalQuantity} \ge 0$
-- **Invariant 2**: $\text{reservedQuantity} \ge 0$
-- **Invariant 3**: $\text{reservedQuantity} \le \text{physicalQuantity} \implies \text{availableQuantity} \ge 0$
-
----
-
-## 19. Transfer Transaction Strategy
-
-1. **Requested**: Creates a record with status `REQUESTED`. No physical stock changes occur.
-2. **Dispatched**: Executed inside `prisma.$transaction`. Locks source inventory, verifies available stock $\ge$ transfer quantity, decrements source `physicalQuantity`, and sets status to `DISPATCHED`. Destination inventory is **not** increased.
-3. **Received**: Executed inside `prisma.$transaction`. Verifies transfer status is currently `DISPATCHED` (preventing double receipt), increments destination `physicalQuantity`, and sets status to `RECEIVED`.
-
----
-
-## 20. Reservation Concurrency Strategy
-
-### The Race Condition
-When available stock is 100, and two sales users attempt to reserve 80 units simultaneously in parallel, naive read-then-write code would allow both requests to pass ($80 + 80 = 160 > 100$), corrupting warehouse stock.
-
-### Database Row-Level Locking Implementation
-Within `OrderService.reserveOrderStock`, each line item reservation is wrapped inside an atomic transaction with row locking:
-
-```typescript
-await prisma.$transaction(async (tx) => {
-  // 1. Fetch and acquire exclusive lock on inventory record
-  const inventory = await tx.inventory.findUnique({
-    where: { itemId_locationId_batchNumber: { itemId, locationId, batchNumber } },
-  });
-
-  const available = inventory.physicalQuantity - inventory.reservedQuantity;
-  if (available < requestedQuantity) {
-    throw new BadRequestError(`Insufficient available inventory. Required: ${requestedQuantity}, Available: ${available}`);
-  }
-
-  // 2. Atomic increment of reservedQuantity
-  await tx.inventory.update({
-    where: { id: inventory.id },
-    data: { reservedQuantity: { increment: requestedQuantity } },
-  });
-
-  // 3. Mark line item as reserved & record audit ledger
-  await tx.customerOrderItem.update({
-    where: { id: item.id },
-    data: { reservedQuantity: requestedQuantity },
-  });
-});
+Test Suites: 1 passed, 1 total
+Tests:       25 passed, 25 total
+Time:        2.075 s
 ```
 
 ---
 
-## 21. ER Diagram
+## 🚀 Local Development Setup
 
-```mermaid
-erDiagram
-    User ||--o{ WorkOrder : "assignedUser"
-    User ||--o{ StockTransfer : "createdBy"
-    User ||--o{ CustomerOrder : "createdBy"
-    User ||--o{ InventoryTransaction : "performedBy"
+### Prerequisites
+- Node.js (v18+)
+- MySQL 8.0 (Local instance, Docker, or TiDB Cloud)
 
-    Category ||--o{ Item : "classifies"
-    
-    Item ||--o{ Inventory : "stored"
-    Item ||--o{ WorkOrder : "target"
-    Item ||--o{ StockTransfer : "transferred"
-    Item ||--o{ CustomerOrderItem : "ordered"
-    Item ||--o{ InventoryTransaction : "audit"
+### 1. Clone Repository
+```bash
+git clone https://github.com/Kunal455/erp_ops.git
+cd erp_ops
+```
 
-    Location ||--o{ Inventory : "houses"
-    Location ||--o{ WorkOrder : "executes"
-    Location ||--o{ StockTransfer : "sourceLocation"
-    Location ||--o{ StockTransfer : "destinationLocation"
-    Location ||--o{ CustomerOrder : "fulfills"
+### 2. Backend Setup
+```bash
+cd backend
+npm install
 
-    CustomerOrder ||--|{ CustomerOrderItem : "contains"
+# Configure environment variables
+# Create .env file with DATABASE_URL, JWT_SECRET, PORT
+
+# Generate Prisma Client & Push Database Schema
+npx prisma generate
+npx prisma db push
+
+# Seed initial users, locations, items, and sample orders
+npm run prisma:seed
+
+# Start development server
+npm run dev
+# Backend runs at http://localhost:5000
+# Swagger API docs at http://localhost:5000/api/docs
+```
+
+### 3. Frontend Setup
+```bash
+cd ../frontend
+npm install
+
+# Start development server
+npm run dev
+# Frontend runs at http://localhost:5173
 ```
 
 ---
 
-## 22. API Overview
+## ☁️ Cloud Deployment Guide
 
-- `POST /api/auth/login` — Log in and receive JWT token
-- `GET /api/auth/me` — Return current authenticated profile
-- `GET /api/auth/users` — List registered users
-- `GET /api/inventory` — List inventory with live available stock calculation
-- `POST /api/inventory/stock-in` — Inward stock batch
-- `GET /api/work-orders` — List work orders with computed shortages
-- `POST /api/work-orders` — Create work order (Admin only)
-- `PATCH /api/work-orders/:id/status` — Advance status (`ASSIGNED` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `COMPLETED`)
-- `GET /api/transfers` — List stock transfers
-- `POST /api/transfers` — Request stock transfer
-- `POST /api/transfers/:id/dispatch` — Dispatch transfer (atomic source stock reduction)
-- `POST /api/transfers/:id/receive` — Receive transfer (atomic destination stock credit)
-- `GET /api/orders` — List customer orders
-- `POST /api/orders` — Create customer order (Sales user)
-- `POST /api/orders/:id/reserve` — Concurrency-safe stock reservation
-- `POST /api/orders/:id/fulfill` — Fulfill customer order and consume stock
-- `POST /api/orders/:id/cancel` — Cancel order and release reserved stock
+### 1. Database: TiDB Cloud (Serverless MySQL)
+1. Create a free cluster on [TiDB Cloud](https://tidbcloud.com/).
+2. Select **Prisma** in the connection dialog and copy the connection string.
+3. Use `/test` as the database name:
+   ```text
+   mysql://<user>.<prefix>:<password>@gateway01.<region>.prod.aws.tidbcloud.com:4000/test?sslaccept=strict
+   ```
+
+### 2. Backend: Render Web Service
+1. Connect `Kunal455/erp_ops` on [Render](https://render.com/).
+2. Settings:
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install && npx prisma generate && npx prisma db push`
+   - **Start Command**: `node src/server.js`
+3. Environment Variables:
+   - `DATABASE_URL`: *Your TiDB Cloud connection string*
+   - `PORT`: `5000`
+   - `NODE_ENV`: `production`
+   - `JWT_SECRET`: `fundsroom-erp-super-secure-production-jwt-secret-2026`
+   - `JWT_EXPIRES_IN`: `7d`
+
+### 3. Frontend: Vercel SPA
+1. Import `Kunal455/erp_ops` on [Vercel](https://vercel.com/).
+2. Settings:
+   - **Root Directory**: `frontend`
+   - **Framework**: `Vite`
+3. Environment Variables:
+   - `VITE_API_URL`: `https://fundsroom-erp-backend.onrender.com` *(without trailing slash)*
