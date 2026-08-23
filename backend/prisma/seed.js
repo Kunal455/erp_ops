@@ -249,26 +249,50 @@ async function main() {
 
   console.log('📊 Seeded Multi-Location Inventory with Batches & Reservations.');
 
-  // 6. Seed Work Order
-  const sampleWorkOrder = await prisma.workOrder.create({
+  // 6. Seed Work Orders
+  const sampleWorkOrder1 = await prisma.workOrder.create({
     data: {
       workOrderNumber: 'WO-20260822-0001',
       locationId: locSouth.id,
       itemId: itemMotor.id,
-      requiredQuantity: 5,
-      assignedUserId: adminUser.id,
+      requiredQuantity: 120,
+      assignedUserId: opsUser.id,
       status: 'ASSIGNED',
-      notes: 'Initial production batch for regional distribution.',
+      notes: 'Assembly of 120 units Electric Motors. Check material shortage at Plant South.',
       materials: {
         create: [
-          { materialItemId: itemSteel.id, requiredQuantity: 75.0, consumedQuantity: 0 },
-          { materialItemId: itemCopper.id, requiredQuantity: 40.0, consumedQuantity: 0 },
+          { materialItemId: itemSteel.id, requiredQuantity: 1800.0, consumedQuantity: 0 },
+          { materialItemId: itemCopper.id, requiredQuantity: 960.0, consumedQuantity: 0 },
         ],
       },
     },
   });
 
-  console.log('📋 Seeded Sample Work Order:', sampleWorkOrder.workOrderNumber);
+  const sampleWorkOrder2 = await prisma.workOrder.create({
+    data: {
+      workOrderNumber: 'WO-20260822-0002',
+      locationId: locNorth.id,
+      itemId: itemPump.id,
+      requiredQuantity: 45,
+      assignedUserId: opsUser.id,
+      status: 'IN_PROGRESS',
+      notes: 'Industrial Pump V2 assembly batch in progress.',
+    },
+  });
+
+  const sampleWorkOrder3 = await prisma.workOrder.create({
+    data: {
+      workOrderNumber: 'WO-20260822-0003',
+      locationId: locCentral.id,
+      itemId: itemMotor.id,
+      requiredQuantity: 15,
+      assignedUserId: opsUser.id,
+      status: 'COMPLETED',
+      notes: 'Completed priority batch for regional depot.',
+    },
+  });
+
+  console.log('📋 Seeded Sample Work Orders:', sampleWorkOrder1.workOrderNumber, sampleWorkOrder2.workOrderNumber, sampleWorkOrder3.workOrderNumber);
 
   // 7. Seed Stock Transfer
   const sampleTransfer = await prisma.stockTransfer.create({
