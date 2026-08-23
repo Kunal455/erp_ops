@@ -6,30 +6,53 @@ const PORT = config.port || 5000;
 
 async function bootstrapDatabase() {
   try {
-    const adminCheck = await prisma.user.findUnique({
-      where: { email: 'kk6547015@gmail.com' },
-    });
+    const inventoryCount = await prisma.inventory.count();
+    const adminUser = await prisma.user.findUnique({ where: { email: 'kk6547015@gmail.com' } });
 
-    if (!adminCheck) {
-      console.log('⚡ Ensuring default Admin and Seed Data are provisioned...');
+    if (inventoryCount === 0 || !adminUser) {
+      console.log('⚡ Running full initial database bootstrap & seeding...');
+
+      // 1. Locations
+      let locNorth = await prisma.location.findUnique({ where: { code: 'WH-NORTH' } });
+      if (!locNorth) {
+        locNorth = await prisma.location.create({
+          data: {
+            code: 'WH-NORTH',
+            name: 'Warehouse North (Main Depot)',
+            address: '100 Industrial Parkway, North Sector',
+          },
+        });
+      }
+
+      let locSouth = await prisma.location.findUnique({ where: { code: 'PLANT-SOUTH' } });
+      if (!locSouth) {
+        locSouth = await prisma.location.create({
+          data: {
+            code: 'PLANT-SOUTH',
+            name: 'Plant South (Assembly Facility)',
+            address: '45 Manufacturing Drive, South Sector',
+          },
+        });
+      }
+
+      let locCentral = await prisma.location.findUnique({ where: { code: 'HUB-CENTRAL' } });
+      if (!locCentral) {
+        locCentral = await prisma.location.create({
+          data: {
+            code: 'HUB-CENTRAL',
+            name: 'Central Logistics Hub',
+            address: '88 Commerce Boulevard, Central Zone',
+          },
+        });
+      }
+
+      // 2. Users
       const passwordHashKunal = await bcrypt.hash('12345678', 10);
       const passwordHashAdmin = await bcrypt.hash('admin123', 10);
       const passwordHashOps = await bcrypt.hash('operations123', 10);
       const passwordHashSales = await bcrypt.hash('sales123', 10);
 
-      // Create default location if not exists
-      let defaultLoc = await prisma.location.findFirst();
-      if (!defaultLoc) {
-        defaultLoc = await prisma.location.create({
-          data: {
-            code: 'WH-NORTH',
-            name: 'Warehouse North (Main Depot)',
-            address: '100 Industrial Parkway',
-          },
-        });
-      }
-
-      await prisma.user.upsert({
+      const kunalAdmin = await prisma.user.upsert({
         where: { email: 'kk6547015@gmail.com' },
         update: { passwordHash: passwordHashKunal, role: 'ADMIN' },
         create: {
@@ -37,11 +60,11 @@ async function bootstrapDatabase() {
           name: 'Kunal Admin',
           passwordHash: passwordHashKunal,
           role: 'ADMIN',
-          locationId: defaultLoc.id,
+          locationId: locNorth.id,
         },
       });
 
-      await prisma.user.upsert({
+      const sysAdmin = await prisma.user.upsert({
         where: { email: 'admin@erp.com' },
         update: { passwordHash: passwordHashAdmin, role: 'ADMIN' },
         create: {
@@ -49,11 +72,11 @@ async function bootstrapDatabase() {
           name: 'System Admin',
           passwordHash: passwordHashAdmin,
           role: 'ADMIN',
-          locationId: defaultLoc.id,
+          locationId: locNorth.id,
         },
       });
 
-      await prisma.user.upsert({
+      const opsUser = await prisma.user.upsert({
         where: { email: 'operations@erp.com' },
         update: { passwordHash: passwordHashOps, role: 'OPERATIONS_USER' },
         create: {
@@ -61,11 +84,11 @@ async function bootstrapDatabase() {
           name: 'Operations Manager',
           passwordHash: passwordHashOps,
           role: 'OPERATIONS_USER',
-          locationId: defaultLoc.id,
+          locationId: locSouth.id,
         },
       });
 
-      await prisma.user.upsert({
+      const salesUser = await prisma.user.upsert({
         where: { email: 'sales@erp.com' },
         update: { passwordHash: passwordHashSales, role: 'SALES_USER' },
         create: {
@@ -73,11 +96,202 @@ async function bootstrapDatabase() {
           name: 'Sales Representative',
           passwordHash: passwordHashSales,
           role: 'SALES_USER',
-          locationId: defaultLoc.id,
+          locationId: locCentral.id,
         },
       });
 
-      console.log('✅ Admin (kk6547015@gmail.com / 12345678) ready.');
+      // 3. Items
+      let itemSteel = await prisma.item.findUnique({ where: { sku: 'RAW-STEEL-01' } });
+      if (!itemSteel) {
+        itemSteel = await prisma.item.create({
+          data: {
+            sku: 'RAW-STEEL-01',
+            name: 'High-Grade Steel Sheet',
+            category: 'Raw Material',
+            uom: 'KG',
+            description: 'Industrial 5mm cold-rolled steel plate',
+          },
+        });
+      }
+
+      let itemCopper = await prisma.item.findUnique({ where: { sku: 'RAW-COPPER-01' } });
+      if (!itemCopper) {
+        itemCopper = await prisma.item.create({
+          data: {
+            sku: 'RAW-COPPER-01',
+            name: 'Copper Wiring Coil',
+            category: 'Raw Material',
+            uom: 'METER',
+            description: 'Heavy duty insulated copper wiring',
+          },
+        });
+      }
+
+      let itemMotor = await prisma.item.findUnique({ where: { sku: 'FIN-MOTOR-X1' } });
+      if (!itemMotor) {
+        itemMotor = await prisma.item.create({
+          data: {
+            sku: 'FIN-MOTOR-X1',
+            name: 'Industrial Electric Motor X1',
+            category: 'Finished Goods',
+            uom: 'PCS',
+            description: 'High-torque 3-phase AC induction motor',
+          },
+        });
+      }
+
+      let itemPump = await prisma.item.findUnique({ where: { sku: 'COMP-PUMP-V2' } });
+      if (!itemPump) {
+        itemPump = await prisma.item.create({
+          data: {
+            sku: 'COMP-PUMP-V2',
+            name: 'Hydraulic Fluid Pump V2',
+            category: 'Components',
+            uom: 'PCS',
+            description: 'Rotary vane hydraulic pump mechanism',
+          },
+        });
+      }
+
+      // 4. BOM
+      const existingBom = await prisma.billOfMaterial.findFirst({
+        where: { parentItemId: itemMotor.id },
+      });
+      if (!existingBom) {
+        await prisma.billOfMaterial.create({
+          data: { parentItemId: itemMotor.id, componentItemId: itemSteel.id, quantityPerUnit: 15.0 },
+        });
+        await prisma.billOfMaterial.create({
+          data: { parentItemId: itemMotor.id, componentItemId: itemCopper.id, quantityPerUnit: 8.0 },
+        });
+      }
+
+      // 5. Multi-Location Inventory
+      await prisma.inventory.upsert({
+        where: {
+          itemId_locationId_batchNumber: {
+            itemId: itemSteel.id,
+            locationId: locNorth.id,
+            batchNumber: 'BAT-ST-001',
+          },
+        },
+        update: {},
+        create: {
+          itemId: itemSteel.id,
+          locationId: locNorth.id,
+          batchNumber: 'BAT-ST-001',
+          physicalQuantity: 100.0,
+          reservedQuantity: 20.0,
+        },
+      });
+
+      await prisma.inventory.upsert({
+        where: {
+          itemId_locationId_batchNumber: {
+            itemId: itemCopper.id,
+            locationId: locNorth.id,
+            batchNumber: 'BAT-CP-001',
+          },
+        },
+        update: {},
+        create: {
+          itemId: itemCopper.id,
+          locationId: locNorth.id,
+          batchNumber: 'BAT-CP-001',
+          physicalQuantity: 250.0,
+          reservedQuantity: 0.0,
+        },
+      });
+
+      await prisma.inventory.upsert({
+        where: {
+          itemId_locationId_batchNumber: {
+            itemId: itemMotor.id,
+            locationId: locNorth.id,
+            batchNumber: 'BAT-MO-001',
+          },
+        },
+        update: {},
+        create: {
+          itemId: itemMotor.id,
+          locationId: locNorth.id,
+          batchNumber: 'BAT-MO-001',
+          physicalQuantity: 30.0,
+          reservedQuantity: 5.0,
+        },
+      });
+
+      await prisma.inventory.upsert({
+        where: {
+          itemId_locationId_batchNumber: {
+            itemId: itemSteel.id,
+            locationId: locSouth.id,
+            batchNumber: 'BAT-ST-002',
+          },
+        },
+        update: {},
+        create: {
+          itemId: itemSteel.id,
+          locationId: locSouth.id,
+          batchNumber: 'BAT-ST-002',
+          physicalQuantity: 10.0,
+          reservedQuantity: 0.0,
+        },
+      });
+
+      await prisma.inventory.upsert({
+        where: {
+          itemId_locationId_batchNumber: {
+            itemId: itemPump.id,
+            locationId: locSouth.id,
+            batchNumber: 'BAT-PU-001',
+          },
+        },
+        update: {},
+        create: {
+          itemId: itemPump.id,
+          locationId: locSouth.id,
+          batchNumber: 'BAT-PU-001',
+          physicalQuantity: 50.0,
+          reservedQuantity: 10.0,
+        },
+      });
+
+      // 6. Sample Work Orders
+      const woCheck = await prisma.workOrder.findFirst();
+      if (!woCheck) {
+        await prisma.workOrder.create({
+          data: {
+            workOrderNumber: 'WO-20260822-0001',
+            locationId: locSouth.id,
+            itemId: itemMotor.id,
+            requiredQuantity: 120,
+            assignedUserId: opsUser.id,
+            status: 'ASSIGNED',
+            notes: 'Assembly of 120 units Electric Motors. Check material shortage at Plant South.',
+            materials: {
+              create: [
+                { materialItemId: itemSteel.id, requiredQuantity: 1800.0, consumedQuantity: 0 },
+                { materialItemId: itemCopper.id, requiredQuantity: 960.0, consumedQuantity: 0 },
+              ],
+            },
+          },
+        });
+
+        await prisma.workOrder.create({
+          data: {
+            workOrderNumber: 'WO-20260822-0002',
+            locationId: locNorth.id,
+            itemId: itemPump.id,
+            requiredQuantity: 45,
+            assignedUserId: opsUser.id,
+            status: 'IN_PROGRESS',
+            notes: 'Industrial Pump V2 assembly batch in progress.',
+          },
+        });
+      }
+
+      console.log('✅ Full bootstrap completed: Admin, Users, Items, Multi-Location Inventory & Work Orders ready.');
     }
   } catch (err) {
     console.warn('⚠️ Auto-bootstrap notice:', err.message);
