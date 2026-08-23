@@ -53,12 +53,24 @@ async function main() {
   const passwordHashOps = await bcrypt.hash('operations123', 10);
   const passwordHashSales = await bcrypt.hash('sales123', 10);
 
+  const passwordHashKunal = await bcrypt.hash('12345678', 10);
+
   // Primary specification seed users
   const adminUser = await prisma.user.create({
     data: {
       email: 'admin@erp.com',
       name: 'System Admin',
       passwordHash: passwordHashAdmin,
+      role: 'ADMIN',
+      locationId: locNorth.id,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: 'kk6547015@gmail.com',
+      name: 'Kunal Admin',
+      passwordHash: passwordHashKunal,
       role: 'ADMIN',
       locationId: locNorth.id,
     },
