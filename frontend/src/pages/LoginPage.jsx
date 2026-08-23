@@ -253,17 +253,17 @@ export const LoginPage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('operations@erp.com', 'operations123')}
+                  onClick={() => handleQuickLogin('rohan@gmail.com', '12345678')}
                   className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition cursor-pointer"
-                  title="Operations (operations@erp.com / operations123)"
+                  title="Operations (rohan@gmail.com / 12345678)"
                 >
                   Operations
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('sales@erp.com', 'sales123')}
+                  onClick={() => handleQuickLogin('rahul@gmail.com', '12345678')}
                   className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
-                  title="Sales (sales@erp.com / sales123)"
+                  title="Sales (rahul@gmail.com / 12345678)"
                 >
                   Sales
                 </button>

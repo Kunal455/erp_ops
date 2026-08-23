@@ -49,28 +49,14 @@ async function main() {
   console.log('📍 Seeded Locations:', locNorth.name, locSouth.name, locCentral.name);
 
   // 2. Seed Users with exact roles
-  const passwordHashAdmin = await bcrypt.hash('admin123', 10);
-  const passwordHashOps = await bcrypt.hash('operations123', 10);
-  const passwordHashSales = await bcrypt.hash('sales123', 10);
-
-  const passwordHashKunal = await bcrypt.hash('12345678', 10);
+  const passwordHashShared = await bcrypt.hash('12345678', 10);
 
   // Primary specification seed users
   const adminUser = await prisma.user.create({
     data: {
-      email: 'admin@erp.com',
-      name: 'System Admin',
-      passwordHash: passwordHashAdmin,
-      role: 'ADMIN',
-      locationId: locNorth.id,
-    },
-  });
-
-  await prisma.user.create({
-    data: {
       email: 'kk6547015@gmail.com',
       name: 'Kunal Admin',
-      passwordHash: passwordHashKunal,
+      passwordHash: passwordHashShared,
       role: 'ADMIN',
       locationId: locNorth.id,
     },
@@ -78,9 +64,9 @@ async function main() {
 
   const opsUser = await prisma.user.create({
     data: {
-      email: 'operations@erp.com',
-      name: 'Operations Manager',
-      passwordHash: passwordHashOps,
+      email: 'rohan@gmail.com',
+      name: 'Rohan Operations',
+      passwordHash: passwordHashShared,
       role: 'OPERATIONS_USER',
       locationId: locSouth.id,
     },
@@ -88,9 +74,39 @@ async function main() {
 
   const salesUser = await prisma.user.create({
     data: {
+      email: 'rahul@gmail.com',
+      name: 'Rahul Sales',
+      passwordHash: passwordHashShared,
+      role: 'SALES_USER',
+      locationId: locCentral.id,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: 'admin@erp.com',
+      name: 'System Admin',
+      passwordHash: passwordHashShared,
+      role: 'ADMIN',
+      locationId: locNorth.id,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: 'operations@erp.com',
+      name: 'Operations Manager',
+      passwordHash: passwordHashShared,
+      role: 'OPERATIONS_USER',
+      locationId: locSouth.id,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
       email: 'sales@erp.com',
       name: 'Sales Representative',
-      passwordHash: passwordHashSales,
+      passwordHash: passwordHashShared,
       role: 'SALES_USER',
       locationId: locCentral.id,
     },
