@@ -6,7 +6,6 @@ import {
   Plus,
   Send,
   DownloadCloud,
-  Clock,
   CheckCircle2,
   AlertCircle,
   Search,
@@ -31,7 +30,7 @@ export const TransfersPage = () => {
   });
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
-  const { isAdmin, isOps } = useAuth();
+  const { isOps } = useAuth();
 
   const fetchTransfers = async () => {
     setLoading(true);
@@ -65,12 +64,21 @@ export const TransfersPage = () => {
       inv.availableQuantity > 0
   );
 
+  const selectedBatchInfo = availableBatches.find((b) => b.batchNumber === formData.batchNumber);
+  const maxAvailableQty = selectedBatchInfo ? selectedBatchInfo.availableQuantity : 0;
+
   // Auto-select batch when source location and item change
   useEffect(() => {
     if (availableBatches.length > 0) {
       if (!formData.batchNumber || !availableBatches.some((b) => b.batchNumber === formData.batchNumber)) {
-        setFormData((prev) => ({ ...prev, batchNumber: availableBatches[0].batchNumber }));
+        setFormData((prev) => ({
+          ...prev,
+          batchNumber: availableBatches[0].batchNumber,
+          quantity: Math.min(prev.quantity || 10, availableBatches[0].availableQuantity),
+        }));
       }
+    } else {
+      setFormData((prev) => ({ ...prev, batchNumber: '' }));
     }
   }, [formData.sourceLocationId, formData.itemId, availableBatches]);
 
@@ -84,9 +92,19 @@ export const TransfersPage = () => {
       return;
     }
 
+    if (!formData.batchNumber) {
+      setError('Please select a valid inventory batch with available stock');
+      return;
+    }
+
+    if (maxAvailableQty > 0 && formData.quantity > maxAvailableQty) {
+      setError(`Cannot transfer ${formData.quantity} units. Available in batch is only ${maxAvailableQty} units.`);
+      return;
+    }
+
     try {
       await apiClient.post('/transfers', formData);
-      setSuccessMsg('Stock transfer request generated successfully!');
+      setSuccessMsg('Stock transfer request generated successfully in REQUESTED status!');
       setShowCreateModal(false);
       setFormData({
         sourceLocationId: '',
@@ -424,14 +442,14 @@ export const TransfersPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                    Batch Number
+                    Available Batch at Origin
                   </label>
                   {availableBatches.length > 0 ? (
                     <select
                       required
                       value={formData.batchNumber}
                       onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-indigo-700 focus:outline-none focus:border-indigo-500"
                     >
                       {availableBatches.map((b) => (
                         <option key={b.batchNumber} value={b.batchNumber}>
@@ -440,28 +458,26 @@ export const TransfersPage = () => {
                       ))}
                     </select>
                   ) : (
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. BAT-ST-001"
-                      value={formData.batchNumber}
-                      onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
-                    />
+                    <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-400 font-italic">
+                      {formData.sourceLocationId && formData.itemId
+                        ? 'No available batches found'
+                        : 'Select warehouse & item first'}
+                    </div>
                   )}
                   {formData.sourceLocationId && formData.itemId && availableBatches.length === 0 && (
-                    <span className="text-[11px] text-amber-600 font-medium mt-1 block">
-                      ⚠️ No stock found for this item at chosen source warehouse.
+                    <span className="text-[11px] text-red-600 font-medium mt-1 block">
+                      ⚠️ No available stock at this origin warehouse.
                     </span>
                   )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                    Transfer Quantity
+                    Transfer Quantity {maxAvailableQty > 0 && `(Max: ${maxAvailableQty})`}
                   </label>
                   <input
                     type="number"
                     min="1"
+                    max={maxAvailableQty > 0 ? maxAvailableQty : undefined}
                     required
                     value={formData.quantity}
                     onChange={(e) =>
@@ -482,7 +498,8 @@ export const TransfersPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-bold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl transition shadow-sm"
+                  disabled={availableBatches.length === 0}
+                  className="px-5 py-2 text-sm font-bold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Transfer
                 </button>
