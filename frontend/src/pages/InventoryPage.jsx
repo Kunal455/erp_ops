@@ -268,16 +268,18 @@ export const InventoryPage = () => {
         </div>
       </div>
 
-      {/* Inventory Table matching screenshot columns */}
+      {/* Inventory Table matching ERP inventory breakdown */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-[#fafafa] text-[11px] uppercase font-bold text-slate-400 border-b border-slate-100 tracking-wider">
               <tr>
-                <th className="px-6 py-4">PRODUCT</th>
-                <th className="px-6 py-4">SKU</th>
-                <th className="px-6 py-4 text-center">CURRENT STOCK</th>
-                <th className="px-6 py-4 text-center">MIN STOCK</th>
+                <th className="px-6 py-4">ITEM / PRODUCT</th>
+                <th className="px-6 py-4">LOCATION</th>
+                <th className="px-6 py-4">BATCH</th>
+                <th className="px-6 py-4 text-center">PHYSICAL</th>
+                <th className="px-6 py-4 text-center">RESERVED</th>
+                <th className="px-6 py-4 text-center">AVAILABLE</th>
                 <th className="px-6 py-4 text-center">STATUS</th>
                 <th className="px-6 py-4 text-right">ACTIONS</th>
               </tr>
@@ -285,20 +287,22 @@ export const InventoryPage = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                     Loading inventory data...
                   </td>
                 </tr>
               ) : filteredInventory.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                     No products found.
                   </td>
                 </tr>
               ) : (
                 filteredInventory.map((inv) => {
-                  const currentStock = inv.availableQuantity;
-                  const minStock = 10; // Standard ERP safety threshold
+                  const physical = inv.physicalQuantity || 0;
+                  const reserved = inv.reservedQuantity || 0;
+                  const available = inv.availableQuantity || 0;
+                  const minStock = 10;
 
                   let statusBadge = (
                     <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
@@ -307,42 +311,46 @@ export const InventoryPage = () => {
                     </span>
                   );
 
-                  let stockColor = 'text-slate-900';
+                  let availColor = 'text-slate-900';
 
-                  if (currentStock === 0) {
+                  if (available === 0) {
                     statusBadge = (
                       <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200/60">
                         <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                         <span>Out</span>
                       </span>
                     );
-                    stockColor = 'text-red-600 font-bold';
-                  } else if (currentStock <= minStock) {
+                    availColor = 'text-red-600 font-bold';
+                  } else if (available <= minStock) {
                     statusBadge = (
                       <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                         <span>Low</span>
                       </span>
                     );
-                    stockColor = 'text-amber-600 font-bold';
+                    availColor = 'text-amber-600 font-bold';
                   }
 
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/60 transition">
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-900">{inv.itemName}</div>
-                        <div className="text-xs text-slate-400">
-                          {inv.locationName} · Batch: {inv.batchNumber}
-                        </div>
+                        <div className="text-xs font-mono text-slate-400">{inv.itemSku}</div>
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs font-medium text-slate-600">
-                        {inv.itemSku}
+                      <td className="px-6 py-4">
+                        <span className="font-medium text-slate-800">{inv.locationName}</span>
                       </td>
-                      <td className={`px-6 py-4 text-center text-sm ${stockColor}`}>
-                        {currentStock}
+                      <td className="px-6 py-4 font-mono text-xs font-bold text-indigo-600">
+                        {inv.batchNumber}
                       </td>
-                      <td className="px-6 py-4 text-center text-sm text-slate-500">
-                        {minStock}
+                      <td className="px-6 py-4 text-center font-semibold text-slate-700">
+                        {physical}
+                      </td>
+                      <td className="px-6 py-4 text-center font-semibold text-amber-600">
+                        {reserved > 0 ? reserved : '0'}
+                      </td>
+                      <td className={`px-6 py-4 text-center text-sm font-bold ${availColor}`}>
+                        {available}
                       </td>
                       <td className="px-6 py-4 text-center">{statusBadge}</td>
                       <td className="px-6 py-4 text-right">

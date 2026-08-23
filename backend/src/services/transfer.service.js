@@ -225,13 +225,23 @@ async function receiveTransfer(transferId, userId) {
       });
     }
 
-    // Update transfer status to RECEIVED
-    const updatedTransfer = await tx.stockTransfer.update({
-      where: { id: transferId },
+    // Atomic status update guard: only transitions if current status is DISPATCHED
+    const updateStatusResult = await tx.stockTransfer.updateMany({
+      where: { id: transferId, status: 'DISPATCHED' },
       data: {
         status: 'RECEIVED',
         receivedAt: new Date(),
       },
+    });
+
+    if (updateStatusResult.count === 0) {
+      throw BadRequestError(
+        `Duplicate receipt prevented: Transfer ${transfer.transferNumber} has already been received.`
+      );
+    }
+
+    const updatedTransfer = await tx.stockTransfer.findUnique({
+      where: { id: transferId },
       include: {
         sourceLocation: true,
         destinationLocation: true,
