@@ -24,9 +24,18 @@ async function createOrder(dto) {
     if (!itemExists) throw NotFoundError(`Item with ID ${itm.itemId} not found`);
   }
 
-  const count = await prisma.customerOrder.count();
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const orderNumber = `ORD-${dateStr}-${(count + 1).toString().padStart(4, '0')}`;
+  const latestOrder = await prisma.customerOrder.findFirst({
+    where: { orderNumber: { startsWith: `ORD-${dateStr}` } },
+    orderBy: { createdAt: 'desc' },
+  });
+  let nextSeq = 1;
+  if (latestOrder && latestOrder.orderNumber) {
+    const parts = latestOrder.orderNumber.split('-');
+    const lastNum = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastNum)) nextSeq = lastNum + 1;
+  }
+  const orderNumber = `ORD-${dateStr}-${nextSeq.toString().padStart(4, '0')}`;
   const totalAmount = dto.items.reduce((acc, itm) => acc + itm.quantity * (itm.unitPrice || 0), 0);
 
   return prisma.customerOrder.create({

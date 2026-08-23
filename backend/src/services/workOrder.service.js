@@ -130,10 +130,19 @@ async function createWorkOrder(dto) {
     if (!user) throw NotFoundError(`User with ID ${dto.assignedUserId} not found`);
   }
 
-  // Generate work order number: WO-YYYYMMDD-XXXX
-  const count = await prisma.workOrder.count();
+  // Generate collision-proof work order number: WO-YYYYMMDD-XXXX
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const workOrderNumber = `WO-${dateStr}-${(count + 1).toString().padStart(4, '0')}`;
+  const latestWO = await prisma.workOrder.findFirst({
+    where: { workOrderNumber: { startsWith: `WO-${dateStr}` } },
+    orderBy: { createdAt: 'desc' },
+  });
+  let nextSeq = 1;
+  if (latestWO && latestWO.workOrderNumber) {
+    const parts = latestWO.workOrderNumber.split('-');
+    const lastNum = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastNum)) nextSeq = lastNum + 1;
+  }
+  const workOrderNumber = `WO-${dateStr}-${nextSeq.toString().padStart(4, '0')}`;
 
   let materialsToCreate = [];
 

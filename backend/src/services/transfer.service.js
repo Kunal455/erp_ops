@@ -46,9 +46,18 @@ async function requestTransfer(dto) {
     );
   }
 
-  const count = await prisma.stockTransfer.count();
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const transferNumber = `TRF-${dateStr}-${(count + 1).toString().padStart(4, '0')}`;
+  const latestTransfer = await prisma.stockTransfer.findFirst({
+    where: { transferNumber: { startsWith: `TRF-${dateStr}` } },
+    orderBy: { createdAt: 'desc' },
+  });
+  let nextSeq = 1;
+  if (latestTransfer && latestTransfer.transferNumber) {
+    const parts = latestTransfer.transferNumber.split('-');
+    const lastNum = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastNum)) nextSeq = lastNum + 1;
+  }
+  const transferNumber = `TRF-${dateStr}-${nextSeq.toString().padStart(4, '0')}`;
 
   return prisma.stockTransfer.create({
     data: {
