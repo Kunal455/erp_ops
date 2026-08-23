@@ -20,8 +20,8 @@ import {
 export const LoginPage = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('admin@erp.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('kk6547015@gmail.com');
+  const [password, setPassword] = useState('12345678');
   const [role, setRole] = useState('OPERATIONS_USER');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -79,8 +79,8 @@ export const LoginPage = () => {
 
   const switchToSignin = () => {
     setIsSignup(false);
-    setEmail('admin@erp.com');
-    setPassword('admin123');
+    setEmail('kk6547015@gmail.com');
+    setPassword('12345678');
     setError(null);
   };
 
@@ -179,7 +179,7 @@ export const LoginPage = () => {
               </div>
             </div>
 
-            {/* Role selection for signup */}
+            {/* Role selection for signup: OPERATIONS_USER and SALES_USER only */}
             {isSignup && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
@@ -190,10 +190,12 @@ export const LoginPage = () => {
                   onChange={(e) => setRole(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition cursor-pointer"
                 >
-                  <option value="ADMIN">ADMIN (Work Orders & Operational Visibility)</option>
                   <option value="OPERATIONS_USER">OPERATIONS_USER (Inventory & Internal Transfers)</option>
                   <option value="SALES_USER">SALES_USER (Customer Orders & Reservations)</option>
                 </select>
+                <div className="text-[11px] text-slate-400 mt-1.5">
+                  * Note: ADMIN accounts are provisioned securely by system database seeds.
+                </div>
               </div>
             )}
 
@@ -243,8 +245,9 @@ export const LoginPage = () => {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('admin@erp.com', 'admin123')}
+                  onClick={() => handleQuickLogin('kk6547015@gmail.com', '12345678')}
                   className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition cursor-pointer"
+                  title="Admin (kk6547015@gmail.com / 12345678)"
                 >
                   Admin
                 </button>
@@ -252,6 +255,7 @@ export const LoginPage = () => {
                   type="button"
                   onClick={() => handleQuickLogin('operations@erp.com', 'operations123')}
                   className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition cursor-pointer"
+                  title="Operations (operations@erp.com / operations123)"
                 >
                   Operations
                 </button>
@@ -259,6 +263,7 @@ export const LoginPage = () => {
                   type="button"
                   onClick={() => handleQuickLogin('sales@erp.com', 'sales123')}
                   className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
+                  title="Sales (sales@erp.com / sales123)"
                 >
                   Sales
                 </button>

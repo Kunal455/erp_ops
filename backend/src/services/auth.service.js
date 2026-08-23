@@ -32,8 +32,8 @@ async function signup(dto, allowAdmin = false) {
 
   const targetRole = normalizeRole(role);
 
-  // Security Rule: Public signup cannot create ADMIN accounts in production/test suites
-  if (targetRole === 'ADMIN' && !allowAdmin && process.env.NODE_ENV === 'test') {
+  // Security Rule: Public signup cannot create ADMIN accounts
+  if (targetRole === 'ADMIN' && !allowAdmin) {
     throw ForbiddenError('Admin accounts cannot be created via public signup. Please contact an administrator.');
   }
 
