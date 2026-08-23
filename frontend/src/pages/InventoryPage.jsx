@@ -1,100 +1,183 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { Boxes, Plus, Search, Filter, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Layers,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  AlertCircle,
+  CheckCircle2,
+  Package,
+  ArrowDownToLine,
+  RefreshCw,
+} from 'lucide-react';
 
 export const InventoryPage = () => {
-  const [inventories, setInventories] = useState([]);
+  const [inventory, setInventory] = useState([]);
   const [locations, setLocations] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedLocation, setSelectedLocation] = useState('');
   const [search, setSearch] = useState('');
-  const [showStockInModal, setShowStockInModal] = useState(false);
-  const [formData, setFormData] = useState({
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [showInwardModal, setShowInwardModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [selectedBatchForAdjust, setSelectedBatchForAdjust] = useState(null);
+
+  const [inwardForm, setInwardForm] = useState({
     itemId: '',
     locationId: '',
     batchNumber: '',
-    quantity: 10,
+    quantity: 100,
     notes: '',
   });
+
+  const [adjustForm, setAdjustForm] = useState({
+    itemId: '',
+    locationId: '',
+    batchNumber: '',
+    newPhysicalQuantity: 0,
+    notes: '',
+  });
+
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+
   const { isAdmin, isOps } = useAuth();
 
-  const fetchInventory = async () => {
+  const fetchInventoryData = async () => {
     setLoading(true);
     try {
       const [invRes, locRes, itemRes] = await Promise.all([
         apiClient.get('/inventory', {
-          params: { locationId: selectedLocation || undefined, search: search || undefined },
+          params: {
+            search: search || undefined,
+            locationId: selectedLocation || undefined,
+          },
         }),
         apiClient.get('/inventory/locations'),
         apiClient.get('/inventory/items'),
       ]);
-      setInventories(invRes.data.data || []);
+
+      setInventory(invRes.data.data || []);
       setLocations(locRes.data.data || []);
       setItems(itemRes.data.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load inventory');
+      setError(err.response?.data?.message || 'Failed to fetch inventory');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchInventory();
-  }, [selectedLocation]);
+    fetchInventoryData();
+  }, [search, selectedLocation]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchInventory();
-  };
-
-  const handleStockIn = async (e) => {
+  const handleStockInward = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
     try {
-      await apiClient.post('/inventory/stock-in', formData);
-      setSuccessMsg('Stock successfully added to inventory!');
-      setShowStockInModal(false);
-      setFormData({ itemId: '', locationId: '', batchNumber: '', quantity: 10, notes: '' });
-      fetchInventory();
+      await apiClient.post('/inventory/stock-in', inwardForm);
+      setSuccessMsg('Stock inward successful! Inventory updated.');
+      setShowInwardModal(false);
+      setInwardForm({
+        itemId: '',
+        locationId: '',
+        batchNumber: '',
+        quantity: 100,
+        notes: '',
+      });
+      fetchInventoryData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to stock-in inventory');
+      setError(err.response?.data?.message || 'Failed to perform stock-in');
     }
   };
 
+  const handleStockAdjust = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      await apiClient.patch('/inventory/adjust', adjustForm);
+      setSuccessMsg('Stock adjusted successfully!');
+      setShowAdjustModal(false);
+      fetchInventoryData();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to adjust stock');
+    }
+  };
+
+  const openAdjustModal = (invRow) => {
+    setSelectedBatchForAdjust(invRow);
+    setAdjustForm({
+      itemId: invRow.itemId,
+      locationId: invRow.locationId,
+      batchNumber: invRow.batchNumber,
+      newPhysicalQuantity: invRow.physicalQuantity,
+      notes: '',
+    });
+    setShowAdjustModal(true);
+  };
+
+  // Metrics computation for Stat Cards
+  const totalItemsCount = items.length > 0 ? items.length : inventory.length;
+  const lowStockCount = inventory.filter(
+    (i) => i.availableQuantity > 0 && i.availableQuantity <= 15
+  ).length;
+  const outOfStockCount = inventory.filter((i) => i.availableQuantity === 0).length;
+
+  // Filter inventory by status dropdown
+  const filteredInventory = inventory.filter((inv) => {
+    if (selectedStatus === 'OUT') return inv.availableQuantity === 0;
+    if (selectedStatus === 'LOW') return inv.availableQuantity > 0 && inv.availableQuantity <= 15;
+    if (selectedStatus === 'GOOD') return inv.availableQuantity > 15;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header matching screenshot */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center space-x-2">
-            <Boxes className="w-6 h-6 text-emerald-600" />
-            <span>Inventory Management</span>
+          <h1 className="text-3xl font-bold font-serif text-slate-900 tracking-tight">
+            Inventory
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Real-time stock balances, batch tracking, and available stock calculations
+            Monitor and adjust your physical stock levels
           </p>
         </div>
 
         {(isAdmin || isOps) && (
-          <button
-            onClick={() => {
-              setError(null);
-              setShowStockInModal(true);
-            }}
-            className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Stock In / Inward</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => {
+                setError(null);
+                setShowInwardModal(true);
+              }}
+              className="inline-flex items-center space-x-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold px-4 py-2.5 rounded-xl text-sm transition shadow-xs cursor-pointer"
+            >
+              <ArrowDownToLine className="w-4 h-4 text-indigo-600" />
+              <span>Stock Inward</span>
+            </button>
+            <button
+              onClick={() => {
+                if (inventory.length > 0) {
+                  openAdjustModal(inventory[0]);
+                }
+              }}
+              className="inline-flex items-center space-x-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition shadow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Stock Adjustment</span>
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Alert Banners */}
+      {/* Notifications */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center space-x-3 text-red-700 text-sm">
           <AlertCircle className="w-5 h-5 shrink-0" />
@@ -108,117 +191,169 @@ export const InventoryPage = () => {
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
-        <form onSubmit={handleSearch} className="flex-1 flex gap-2 w-full">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by SKU or Item name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
-            />
+      {/* 3 Metric Cards matching screenshot */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Total Items */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            TOTAL ITEMS
           </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition"
-          >
-            Search
-          </button>
-        </form>
+          <div className="text-4xl font-bold text-slate-900 mt-4 font-sans">
+            {totalItemsCount}
+          </div>
+        </div>
 
-        <div className="flex items-center space-x-3 w-full md:w-auto">
-          <Filter className="w-4 h-4 text-slate-400" />
+        {/* Low Stock */}
+        <div className="bg-[#fffdf5] border border-[#fef3c7] rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+          <div className="text-xs font-bold text-[#b45309] uppercase tracking-wider">
+            LOW STOCK
+          </div>
+          <div className="text-4xl font-bold text-[#d97706] mt-4 font-sans">
+            {lowStockCount}
+          </div>
+        </div>
+
+        {/* Out of Stock */}
+        <div className="bg-[#fef8f8] border border-[#fee2e2] rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+          <div className="text-xs font-bold text-[#b91c1c] uppercase tracking-wider">
+            OUT OF STOCK
+          </div>
+          <div className="text-4xl font-bold text-[#dc2626] mt-4 font-sans">
+            {outOfStockCount}
+          </div>
+        </div>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:max-w-md">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search className="w-4 h-4" />
+          </span>
+          <input
+            type="text"
+            placeholder="Search product..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+          />
+        </div>
+
+        <div className="flex items-center space-x-3 w-full sm:w-auto">
+          {/* Location selector */}
           <select
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500"
+            className="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer"
           >
             <option value="">All Warehouses</option>
             {locations.map((loc) => (
               <option key={loc.id} value={loc.id}>
-                {loc.name} ({loc.code})
+                {loc.name}
               </option>
             ))}
           </select>
-          <button
-            onClick={fetchInventory}
-            title="Refresh Inventory"
-            className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition"
+
+          {/* Status filter dropdown */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+            <option value="ALL">All Stock</option>
+            <option value="GOOD">Good Stock</option>
+            <option value="LOW">Low Stock</option>
+            <option value="OUT">Out of Stock</option>
+          </select>
         </div>
       </div>
 
-      {/* Inventory Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Inventory Table matching screenshot columns */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+            <thead className="bg-[#fafafa] text-[11px] uppercase font-bold text-slate-400 border-b border-slate-100 tracking-wider">
               <tr>
-                <th className="px-6 py-4">Item SKU & Name</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Location</th>
-                <th className="px-6 py-4">Batch Number</th>
-                <th className="px-6 py-4 text-right">Physical Stock</th>
-                <th className="px-6 py-4 text-right">Reserved Stock</th>
-                <th className="px-6 py-4 text-right">Available Stock</th>
+                <th className="px-6 py-4">PRODUCT</th>
+                <th className="px-6 py-4">SKU</th>
+                <th className="px-6 py-4 text-center">CURRENT STOCK</th>
+                <th className="px-6 py-4 text-center">MIN STOCK</th>
+                <th className="px-6 py-4 text-center">STATUS</th>
+                <th className="px-6 py-4 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-                      <span>Loading real-time stock balances...</span>
-                    </div>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    Loading inventory data...
                   </td>
                 </tr>
-              ) : inventories.length === 0 ? (
+              ) : filteredInventory.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    No inventory records found for the selected filters.
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    No products found.
                   </td>
                 </tr>
               ) : (
-                inventories.map((inv) => {
-                  const avail = Number(inv.physicalQuantity) - Number(inv.reservedQuantity);
+                filteredInventory.map((inv) => {
+                  const currentStock = inv.availableQuantity;
+                  const minStock = 10; // Standard ERP safety threshold
+
+                  let statusBadge = (
+                    <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span>Good</span>
+                    </span>
+                  );
+
+                  let stockColor = 'text-slate-900';
+
+                  if (currentStock === 0) {
+                    statusBadge = (
+                      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200/60">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        <span>Out</span>
+                      </span>
+                    );
+                    stockColor = 'text-red-600 font-bold';
+                  } else if (currentStock <= minStock) {
+                    statusBadge = (
+                      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span>Low</span>
+                      </span>
+                    );
+                    stockColor = 'text-amber-600 font-bold';
+                  }
+
                   return (
-                    <tr key={inv.id} className="hover:bg-slate-50 transition">
+                    <tr key={inv.id} className="hover:bg-slate-50/60 transition">
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900">{inv.item?.name}</div>
-                        <div className="text-xs font-mono text-slate-400">{inv.item?.sku}</div>
+                        <div className="font-bold text-slate-900">{inv.itemName}</div>
+                        <div className="text-xs text-slate-400">
+                          {inv.locationName} · Batch: {inv.batchNumber}
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-medium">
-                          {inv.item?.category}
-                        </span>
+                      <td className="px-6 py-4 font-mono text-xs font-medium text-slate-600">
+                        {inv.itemSku}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-slate-800">{inv.location?.name}</div>
-                        <div className="text-xs text-slate-400">{inv.location?.code}</div>
+                      <td className={`px-6 py-4 text-center text-sm ${stockColor}`}>
+                        {currentStock}
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-700">{inv.batchNumber}</td>
-                      <td className="px-6 py-4 text-right font-medium text-slate-800">
-                        {inv.physicalQuantity} {inv.item?.uom}
+                      <td className="px-6 py-4 text-center text-sm text-slate-500">
+                        {minStock}
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-amber-600">
-                        {inv.reservedQuantity} {inv.item?.uom}
-                      </td>
+                      <td className="px-6 py-4 text-center">{statusBadge}</td>
                       <td className="px-6 py-4 text-right">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
-                            avail > 0
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                              : 'bg-red-100 text-red-800 border border-red-200'
-                          }`}
-                        >
-                          {avail} {inv.item?.uom}
-                        </span>
+                        {(isAdmin || isOps) && (
+                          <button
+                            onClick={() => openAdjustModal(inv)}
+                            className="px-3 py-1 text-xs font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg transition"
+                          >
+                            Adjust
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -229,30 +364,32 @@ export const InventoryPage = () => {
         </div>
       </div>
 
-      {/* Stock In Modal */}
-      {showStockInModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900 mb-1">Stock Inward / Inward Balance</h2>
+      {/* Stock Inward Modal */}
+      {showInwardModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h2 className="text-xl font-bold font-serif text-slate-900 mb-1">
+              Stock Inward
+            </h2>
             <p className="text-xs text-slate-500 mb-4">
-              Add new inventory batches to warehouse stock with transactional audit log.
+              Receive raw materials or finished products into warehouse batches.
             </p>
 
-            <form onSubmit={handleStockIn} className="space-y-4">
+            <form onSubmit={handleStockInward} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Item
+                  Product Item
                 </label>
                 <select
                   required
-                  value={formData.itemId}
-                  onChange={(e) => setFormData({ ...formData, itemId: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  value={inwardForm.itemId}
+                  onChange={(e) => setInwardForm({ ...inwardForm, itemId: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
                 >
                   <option value="">Select Item...</option>
                   {items.map((it) => (
                     <option key={it.id} value={it.id}>
-                      {it.name} ({it.sku}) - {it.uom}
+                      {it.name} ({it.sku})
                     </option>
                   ))}
                 </select>
@@ -260,15 +397,15 @@ export const InventoryPage = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Destination Warehouse
+                  Target Warehouse
                 </label>
                 <select
                   required
-                  value={formData.locationId}
-                  onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  value={inwardForm.locationId}
+                  onChange={(e) => setInwardForm({ ...inwardForm, locationId: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="">Select Location...</option>
+                  <option value="">Select Warehouse...</option>
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.name} ({loc.code})
@@ -285,10 +422,12 @@ export const InventoryPage = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. BAT-2026-001"
-                    value={formData.batchNumber}
-                    onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                    placeholder="e.g. BAT-2026-01"
+                    value={inwardForm.batchNumber}
+                    onChange={(e) =>
+                      setInwardForm({ ...inwardForm, batchNumber: e.target.value })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -299,39 +438,113 @@ export const InventoryPage = () => {
                     type="number"
                     min="1"
                     required
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                    value={inwardForm.quantity}
+                    onChange={(e) =>
+                      setInwardForm({ ...inwardForm, quantity: Number(e.target.value) })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
                   />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowInwardModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-sm font-bold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl transition shadow-sm"
+                >
+                  Confirm Inward
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Adjustment Modal */}
+      {showAdjustModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h2 className="text-xl font-bold font-serif text-slate-900 mb-1">
+              Stock Adjustment
+            </h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Update physical count post physical verification audit.
+            </p>
+
+            <form onSubmit={handleStockAdjust} className="space-y-4">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
+                <div>
+                  <span className="text-slate-500">Item: </span>
+                  <span className="font-bold text-slate-800">
+                    {selectedBatchForAdjust?.itemName} ({selectedBatchForAdjust?.itemSku})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Warehouse: </span>
+                  <span className="font-semibold text-slate-800">
+                    {selectedBatchForAdjust?.locationName}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Batch: </span>
+                  <span className="font-mono text-slate-800 font-bold">
+                    {selectedBatchForAdjust?.batchNumber}
+                  </span>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Notes / Reference
+                  New Physical Quantity
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={adjustForm.newPhysicalQuantity}
+                  onChange={(e) =>
+                    setAdjustForm({
+                      ...adjustForm,
+                      newPhysicalQuantity: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  Adjustment Reason / Notes
                 </label>
                 <input
                   type="text"
-                  placeholder="PO or Supplier delivery note"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  placeholder="e.g. Cycle count verification"
+                  value={adjustForm.notes}
+                  onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowStockInModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                  onClick={() => setShowAdjustModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition shadow-md"
+                  className="px-5 py-2 text-sm font-bold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl transition shadow-sm"
                 >
-                  Confirm Inward
+                  Apply Adjustment
                 </button>
               </div>
             </form>

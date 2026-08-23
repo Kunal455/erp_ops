@@ -2,119 +2,114 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Boxes,
+  LayoutDashboard,
+  Layers,
   ClipboardList,
   ArrowLeftRight,
   ShoppingCart,
-  FileText,
-  ShieldAlert,
+  ChevronRight,
+  Package,
+  Users,
 } from 'lucide-react';
 
 export const Sidebar = () => {
-  const { user } = useAuth();
+  const { isAdmin, isOps, isSales } = useAuth();
 
   const navItems = [
     {
       to: '/inventory',
-      label: 'Inventory & Stock',
-      icon: Boxes,
-      roles: ['ADMIN', 'OPERATIONS', 'SALES'],
-      badge: 'Real-time',
+      label: 'Inventory',
+      icon: Layers,
+      allowed: true,
+    },
+    {
+      to: '/customer-orders',
+      label: 'Customers & Orders',
+      icon: Users,
+      allowed: isAdmin || isSales,
     },
     {
       to: '/work-orders',
       label: 'Work Orders',
       icon: ClipboardList,
-      roles: ['ADMIN', 'OPERATIONS'],
-      badge: user?.role === 'ADMIN' ? 'Manage' : 'View',
+      allowed: isAdmin || isOps,
     },
     {
       to: '/transfers',
-      label: 'Internal Transfers',
+      label: 'Stock Transfers',
       icon: ArrowLeftRight,
-      roles: ['ADMIN', 'OPERATIONS'],
-      badge: 'Transfers',
-    },
-    {
-      to: '/customer-orders',
-      label: 'Customer Orders',
-      icon: ShoppingCart,
-      roles: ['ADMIN', 'SALES'],
-      badge: 'Reservations',
+      allowed: isAdmin || isOps,
     },
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 min-h-[calc(100vh-61px)]">
-      <div className="p-4 flex-1">
-        <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-3 mb-3">
-          Operations Modules
-        </div>
-        <nav className="space-y-1.5">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isAccessible = item.roles.includes(user?.role || '');
-
-            if (!isAccessible) {
-              return (
-                <div
-                  key={item.to}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-600 bg-slate-800/40 cursor-not-allowed opacity-60 text-sm"
-                  title={`Restricted to: ${item.roles.join(', ')}`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Icon className="w-4 h-4 text-slate-600" />
-                    <span>{item.label}</span>
-                  </div>
-                  <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-              );
-            }
-
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`
-                }
-              >
-                <div className="flex items-center space-x-3">
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </div>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 group-hover:text-slate-200">
-                  {item.badge}
-                </span>
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        <div className="mt-8 pt-4 border-t border-slate-800">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
-            API Documentation
+    <aside className="w-64 bg-white border-r border-slate-200/80 min-h-[calc(100vh-65px)] flex flex-col justify-between p-4 shrink-0">
+      <div className="space-y-6">
+        {/* Section Header */}
+        <div>
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
+            Admin Menu
           </div>
-          <a
-            href="http://localhost:5000/api/docs"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center space-x-3 px-3 py-2 text-sm text-slate-400 hover:text-emerald-400 hover:bg-slate-800/60 rounded-lg transition"
-          >
-            <FileText className="w-4 h-4" />
-            <span>OpenAPI / Swagger</span>
-          </a>
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+
+              if (!item.allowed) {
+                return (
+                  <div
+                    key={item.to}
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-300 text-sm font-medium cursor-not-allowed opacity-50 select-none"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">
+                      Locked
+                    </span>
+                  </div>
+                );
+              }
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition duration-150 ${
+                      isActive
+                        ? 'bg-[#eef2ff] text-[#4f46e5] font-semibold shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className="flex items-center space-x-3">
+                        <Icon
+                          className={`w-4 h-4 ${isActive ? 'text-[#4f46e5]' : 'text-slate-400'}`}
+                        />
+                        <span>{item.label}</span>
+                      </div>
+                      {isActive && <ChevronRight className="w-4 h-4 text-[#4f46e5]" />}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
       </div>
 
-      {/* Role Info Footer */}
-      <div className="p-4 bg-slate-950/60 border-t border-slate-800/80 text-xs">
-        <div className="text-slate-400 font-medium">Logged in role:</div>
-        <div className="text-emerald-400 font-semibold mt-0.5">{user?.role}</div>
+      {/* Warehouse Status Pill at bottom */}
+      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+        <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+          <span>Multi-Warehouse Live</span>
+        </div>
+        <div className="text-[11px] text-slate-400 mt-1">
+          MySQL 8.0 Concurrency-Safe
+        </div>
       </div>
     </aside>
   );
