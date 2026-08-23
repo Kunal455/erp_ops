@@ -124,13 +124,24 @@ async function reserveOrderStock(orderId, userId) {
         );
       }
 
-      // Atomic increment of reservedQuantity
-      const updatedInv = await tx.inventory.update({
-        where: { id: targetInventory.id },
+      // Atomic increment of reservedQuantity with CAS guard
+      const updateResult = await tx.inventory.updateMany({
+        where: {
+          id: targetInventory.id,
+          reservedQuantity: { lte: targetInventory.physicalQuantity - orderItem.quantity },
+        },
         data: {
           reservedQuantity: { increment: orderItem.quantity },
         },
       });
+
+      if (updateResult.count === 0) {
+        throw BadRequestError(
+          `Insufficient available inventory for item ${orderItem.item?.name || 'Item'} (concurrent reservation conflict)`
+        );
+      }
+
+      const updatedInv = await tx.inventory.findUnique({ where: { id: targetInventory.id } });
 
       // Update order line item
       await tx.customerOrderItem.update({

@@ -116,11 +116,22 @@ async function dispatchTransfer(transferId, userId) {
       );
     }
 
-    // Decrement source physical quantity
-    const updatedSource = await tx.inventory.update({
-      where: { id: sourceInventory.id },
+    // Decrement source physical quantity with atomic CAS guard
+    const updateResult = await tx.inventory.updateMany({
+      where: {
+        id: sourceInventory.id,
+        physicalQuantity: { gte: transfer.quantity },
+      },
       data: { physicalQuantity: { decrement: transfer.quantity } },
     });
+
+    if (updateResult.count === 0) {
+      throw BadRequestError(
+        `Insufficient source stock to dispatch transfer (concurrent dispatch conflict).`
+      );
+    }
+
+    const updatedSource = await tx.inventory.findUnique({ where: { id: sourceInventory.id } });
 
     // Update transfer status to DISPATCHED
     const updatedTransfer = await tx.stockTransfer.update({
