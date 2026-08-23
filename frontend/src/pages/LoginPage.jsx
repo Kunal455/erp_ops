@@ -179,7 +179,7 @@ export const LoginPage = () => {
               </div>
             </div>
 
-            {/* Role selection for signup (OPERATIONS_USER or SALES_USER only) */}
+            {/* Role selection for signup */}
             {isSignup && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
@@ -190,12 +190,10 @@ export const LoginPage = () => {
                   onChange={(e) => setRole(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition cursor-pointer"
                 >
+                  <option value="ADMIN">ADMIN (Work Orders & Operational Visibility)</option>
                   <option value="OPERATIONS_USER">OPERATIONS_USER (Inventory & Internal Transfers)</option>
                   <option value="SALES_USER">SALES_USER (Customer Orders & Reservations)</option>
                 </select>
-                <div className="text-[11px] text-slate-400 mt-1.5">
-                  * Note: ADMIN accounts are provisioned securely by system database seeds.
-                </div>
               </div>
             )}
 

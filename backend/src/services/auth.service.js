@@ -32,11 +32,6 @@ async function signup(dto, allowAdmin = false) {
 
   const targetRole = normalizeRole(role);
 
-  // Security Rule: Public signup cannot create ADMIN accounts
-  if (targetRole === 'ADMIN' && !allowAdmin) {
-    throw ForbiddenError('Admin accounts cannot be created via public signup. Please contact an administrator.');
-  }
-
   // Validate location if provided
   if (locationId) {
     const location = await prisma.location.findUnique({
