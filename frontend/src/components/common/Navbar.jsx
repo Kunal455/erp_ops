@@ -1,23 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Search, LogOut, Shield, ChevronDown, Zap } from 'lucide-react';
+import { Search, LogOut, Shield, Zap } from 'lucide-react';
 
 export const Navbar = () => {
-  const { user, role, logout, setRoleOverride, isRoleOverridden } = useAuth();
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
-
-  const availableRoles = ['ADMIN', 'OPERATIONS_USER', 'SALES_USER'];
+  const { user, role, logout } = useAuth();
 
   const getRoleBadgeStyle = (r) => {
     switch (r) {
       case 'ADMIN':
-        return 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100';
+        return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'OPERATIONS_USER':
-        return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'SALES_USER':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100';
+        return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
@@ -57,59 +54,16 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Right Controls: Role Switcher & User Profile */}
+      {/* Right Controls: Static Role Badge & User Profile */}
       <div className="flex items-center space-x-4">
-        {/* Quick Role Switcher Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${getRoleBadgeStyle(
-              role
-            )}`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>Role: {role}</span>
-            {isRoleOverridden && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            )}
-            <ChevronDown className="w-3 h-3" />
-          </button>
-
-          {showRoleMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in zoom-in-95">
-              <div className="px-3 py-1.5 text-[11px] font-semibold uppercase text-slate-400 border-b border-slate-100">
-                Switch Active Role View
-              </div>
-              {availableRoles.map((r) => (
-                <button
-                  key={r}
-                  onClick={() => {
-                    setRoleOverride(r);
-                    setShowRoleMenu(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2 text-xs font-medium flex items-center justify-between hover:bg-slate-50 transition cursor-pointer ${
-                    role === r ? 'text-indigo-600 font-bold bg-indigo-50/50' : 'text-slate-700'
-                  }`}
-                >
-                  <span>{r}</span>
-                  {role === r && <span className="text-xs text-indigo-600">✓</span>}
-                </button>
-              ))}
-              {isRoleOverridden && (
-                <div className="pt-1 border-t border-slate-100">
-                  <button
-                    onClick={() => {
-                      setRoleOverride(null);
-                      setShowRoleMenu(false);
-                    }}
-                    className="w-full text-left px-3.5 py-1.5 text-[11px] text-amber-600 hover:bg-amber-50 font-medium cursor-pointer"
-                  >
-                    Reset to Auth Role ({user?.role})
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+        {/* Role Badge (Static) */}
+        <div
+          className={`inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border select-none ${getRoleBadgeStyle(
+            role
+          )}`}
+        >
+          <Shield className="w-3.5 h-3.5" />
+          <span>Role: {role}</span>
         </div>
 
         {/* User Info Avatar */}
