@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('erp_token'));
+  const [roleOverride, setRoleOverride] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +37,17 @@ export const AuthProvider = ({ children }) => {
     const { token: receivedToken, user: receivedUser } = res.data.data;
     setToken(receivedToken);
     setUser(receivedUser);
+    setRoleOverride(null);
+    localStorage.setItem('erp_token', receivedToken);
+    localStorage.setItem('erp_user', JSON.stringify(receivedUser));
+  };
+
+  const signup = async ({ name, email, password, role }) => {
+    const res = await apiClient.post('/auth/signup', { name, email, password, role });
+    const { token: receivedToken, user: receivedUser } = res.data.data;
+    setToken(receivedToken);
+    setUser(receivedUser);
+    setRoleOverride(null);
     localStorage.setItem('erp_token', receivedToken);
     localStorage.setItem('erp_user', JSON.stringify(receivedUser));
   };
@@ -43,17 +55,20 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
+    setRoleOverride(null);
     localStorage.removeItem('erp_token');
     localStorage.removeItem('erp_user');
   };
 
-  const isAdmin = user?.role === 'ADMIN';
-  const isOps = user?.role === 'OPERATIONS';
-  const isSales = user?.role === 'SALES';
+  const effectiveRole = roleOverride || user?.role || 'OPERATIONS';
+
+  const isAdmin = effectiveRole === 'ADMIN';
+  const isOps = effectiveRole === 'OPERATIONS';
+  const isSales = effectiveRole === 'SALES';
 
   const hasRole = (roles) => {
     if (!user) return false;
-    return roles.includes(user.role);
+    return roles.includes(effectiveRole);
   };
 
   return (
@@ -61,7 +76,12 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         token,
+        role: effectiveRole,
+        roleOverride,
+        setRoleOverride,
+        isRoleOverridden: !!roleOverride,
         login,
+        signup,
         logout,
         loading,
         isAdmin,

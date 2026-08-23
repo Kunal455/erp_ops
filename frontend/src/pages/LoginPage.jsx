@@ -45,9 +45,17 @@ export const LoginPage = () => {
       }
       navigate('/inventory');
     } catch (err) {
-      setError(
+      const backendMessage =
         err.response?.data?.message ||
-          (isSignup ? 'Registration failed. Please verify credentials.' : 'Invalid email or password')
+        (Array.isArray(err.response?.data?.errors)
+          ? err.response.data.errors.join(', ')
+          : null);
+
+      setError(
+        backendMessage ||
+          (isSignup
+            ? 'Registration failed. Please check inputs.'
+            : 'Invalid email or password. Please try again.')
       );
     } finally {
       setLoading(false);
@@ -58,6 +66,21 @@ export const LoginPage = () => {
     setIsSignup(false);
     setEmail(userEmail);
     setPassword(userPassword);
+    setError(null);
+  };
+
+  const switchToSignup = () => {
+    setIsSignup(true);
+    setName('');
+    setEmail('');
+    setPassword('');
+    setError(null);
+  };
+
+  const switchToSignin = () => {
+    setIsSignup(false);
+    setEmail('admin@fundsroom.com');
+    setPassword('admin123');
     setError(null);
   };
 
@@ -80,8 +103,8 @@ export const LoginPage = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center space-x-2 animate-shake">
-              <span className="font-semibold">Error:</span>
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center space-x-2">
+              <span className="font-bold">Error:</span>
               <span>{error}</span>
             </div>
           )}
@@ -100,7 +123,7 @@ export const LoginPage = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Rohan Sharma"
+                    placeholder="e.g. Kunal Kumar"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition"
@@ -141,7 +164,7 @@ export const LoginPage = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
-                  placeholder="Enter your password"
+                  placeholder={isSignup ? 'Create strong password (min 6 chars)' : 'Enter your password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-11 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition"
@@ -263,11 +286,8 @@ export const LoginPage = () => {
                   Already have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsSignup(false);
-                      setError(null);
-                    }}
-                    className="text-indigo-600 font-semibold hover:underline"
+                    onClick={switchToSignin}
+                    className="text-indigo-600 font-semibold hover:underline cursor-pointer"
                   >
                     Sign in here
                   </button>
@@ -277,11 +297,8 @@ export const LoginPage = () => {
                   Don't have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsSignup(true);
-                      setError(null);
-                    }}
-                    className="text-indigo-600 font-semibold hover:underline"
+                    onClick={switchToSignup}
+                    className="text-indigo-600 font-semibold hover:underline cursor-pointer"
                   >
                     Create one free
                   </button>
@@ -294,12 +311,10 @@ export const LoginPage = () => {
 
       {/* RIGHT COLUMN: Rich Deep Purple Hero Banner matching the screenshot */}
       <div className="w-full lg:w-[52%] bg-[#27144d] text-white p-8 sm:p-12 lg:p-16 xl:p-20 flex flex-col justify-between relative overflow-hidden">
-        {/* Subtle background glow effect */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 max-w-xl mx-auto my-auto space-y-8">
-          {/* Top Pill Badges */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-white backdrop-blur-md border border-white/10">
               <Zap className="w-3.5 h-3.5 text-indigo-300" />
@@ -312,7 +327,6 @@ export const LoginPage = () => {
             </div>
           </div>
 
-          {/* Headline */}
           <div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-serif leading-tight tracking-tight text-white">
               Welcome back to your operations command center
@@ -322,7 +336,6 @@ export const LoginPage = () => {
             </p>
           </div>
 
-          {/* Feature List with Colored Circular Icons */}
           <div className="space-y-4 pt-2">
             <div className="flex items-center space-x-4">
               <div className="w-10 h-10 rounded-full bg-[#3d2475] flex items-center justify-center shrink-0 border border-purple-400/20 text-purple-300">
@@ -361,7 +374,6 @@ export const LoginPage = () => {
             </div>
           </div>
 
-          {/* Social Proof Rating */}
           <div className="flex items-center space-x-2 pt-2">
             <div className="flex text-amber-400 space-x-0.5">
               {[...Array(5)].map((_, i) => (
@@ -373,7 +385,6 @@ export const LoginPage = () => {
             </span>
           </div>
 
-          {/* 3 Metric Cards matching screenshot */}
           <div className="grid grid-cols-3 gap-4 pt-4">
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 transition hover:bg-white/10">
               <div className="text-2xl sm:text-3xl font-extrabold text-white">12K+</div>
