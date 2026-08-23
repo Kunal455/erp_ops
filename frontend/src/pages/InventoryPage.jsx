@@ -1,17 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import {
-  Layers,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  ChevronDown,
-  AlertCircle,
-  CheckCircle2,
   Package,
+  Layers,
   ArrowDownToLine,
-  RefreshCw,
+  SlidersHorizontal,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Plus,
 } from 'lucide-react';
 
 export const InventoryPage = () => {
@@ -22,10 +20,11 @@ export const InventoryPage = () => {
   const [search, setSearch] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [showInwardModal, setShowInwardModal] = useState(false);
-  const [showAdjustModal, setShowAdjustModal] = useState(false);
-  const [selectedBatchForAdjust, setSelectedBatchForAdjust] = useState(null);
+  const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
+  // Stock Inward Form State
+  const [showInwardModal, setShowInwardModal] = useState(false);
   const [inwardForm, setInwardForm] = useState({
     itemId: '',
     locationId: '',
@@ -34,6 +33,9 @@ export const InventoryPage = () => {
     notes: '',
   });
 
+  // Stock Adjustment Form State
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [selectedBatchForAdjust, setSelectedBatchForAdjust] = useState(null);
   const [adjustForm, setAdjustForm] = useState({
     itemId: '',
     locationId: '',
@@ -42,30 +44,23 @@ export const InventoryPage = () => {
     notes: '',
   });
 
-  const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
-
-  const { isAdmin, isOps } = useAuth();
+  const { isOps } = useAuth();
 
   const fetchInventoryData = async () => {
     setLoading(true);
     try {
       const [invRes, locRes, itemRes] = await Promise.all([
         apiClient.get('/inventory', {
-          params: {
-            search: search || undefined,
-            locationId: selectedLocation || undefined,
-          },
+          params: { locationId: selectedLocation || undefined },
         }),
         apiClient.get('/inventory/locations'),
         apiClient.get('/inventory/items'),
       ]);
-
       setInventory(invRes.data.data || []);
       setLocations(locRes.data.data || []);
       setItems(itemRes.data.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch inventory');
+      setError(err.response?.data?.message || 'Failed to load inventory');
     } finally {
       setLoading(false);
     }
@@ -73,7 +68,7 @@ export const InventoryPage = () => {
 
   useEffect(() => {
     fetchInventoryData();
-  }, [search, selectedLocation]);
+  }, [selectedLocation]);
 
   const handleStockInward = async (e) => {
     e.preventDefault();
@@ -111,26 +106,34 @@ export const InventoryPage = () => {
   };
 
   const openAdjustModal = (invRow) => {
-    setSelectedBatchForAdjust(invRow);
-    setAdjustForm({
-      itemId: invRow.itemId,
-      locationId: invRow.locationId,
-      batchNumber: invRow.batchNumber,
-      newPhysicalQuantity: invRow.physicalQuantity,
-      notes: '',
-    });
+    const target = invRow || (inventory.length > 0 ? inventory[0] : null);
+    setSelectedBatchForAdjust(target);
+    if (target) {
+      setAdjustForm({
+        itemId: target.itemId,
+        locationId: target.locationId,
+        batchNumber: target.batchNumber,
+        newPhysicalQuantity: target.physicalQuantity,
+        notes: '',
+      });
+    }
     setShowAdjustModal(true);
   };
 
-  // Metrics computation for Stat Cards
-  const totalItemsCount = items.length > 0 ? items.length : inventory.length;
+  // 3 Metric Cards Calculation
+  const totalItemsCount = inventory.length;
   const lowStockCount = inventory.filter(
     (i) => i.availableQuantity > 0 && i.availableQuantity <= 15
   ).length;
   const outOfStockCount = inventory.filter((i) => i.availableQuantity === 0).length;
 
-  // Filter inventory by status dropdown
+  // Filter inventory by status dropdown & search
   const filteredInventory = inventory.filter((inv) => {
+    const matchSearch =
+      (inv.itemName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (inv.itemSku || '').toLowerCase().includes(search.toLowerCase()) ||
+      (inv.batchNumber || '').toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
     if (selectedStatus === 'OUT') return inv.availableQuantity === 0;
     if (selectedStatus === 'LOW') return inv.availableQuantity > 0 && inv.availableQuantity <= 15;
     if (selectedStatus === 'GOOD') return inv.availableQuantity > 15;
@@ -139,7 +142,7 @@ export const InventoryPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header matching screenshot */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-serif text-slate-900 tracking-tight">
@@ -164,9 +167,8 @@ export const InventoryPage = () => {
             </button>
             <button
               onClick={() => {
-                if (inventory.length > 0) {
-                  openAdjustModal(inventory[0]);
-                }
+                setError(null);
+                openAdjustModal(inventory.length > 0 ? inventory[0] : null);
               }}
               className="inline-flex items-center space-x-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition shadow-sm cursor-pointer"
             >
@@ -191,9 +193,8 @@ export const InventoryPage = () => {
         </div>
       )}
 
-      {/* 3 Metric Cards matching screenshot */}
+      {/* 3 Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Total Items */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             TOTAL ITEMS
@@ -203,7 +204,6 @@ export const InventoryPage = () => {
           </div>
         </div>
 
-        {/* Low Stock */}
         <div className="bg-[#fffdf5] border border-[#fef3c7] rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div className="text-xs font-bold text-[#b45309] uppercase tracking-wider">
             LOW STOCK
@@ -213,7 +213,6 @@ export const InventoryPage = () => {
           </div>
         </div>
 
-        {/* Out of Stock */}
         <div className="bg-[#fef8f8] border border-[#fee2e2] rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div className="text-xs font-bold text-[#b91c1c] uppercase tracking-wider">
             OUT OF STOCK
@@ -240,7 +239,6 @@ export const InventoryPage = () => {
         </div>
 
         <div className="flex items-center space-x-3 w-full sm:w-auto">
-          {/* Location selector */}
           <select
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}
@@ -254,7 +252,6 @@ export const InventoryPage = () => {
             ))}
           </select>
 
-          {/* Status filter dropdown */}
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
@@ -268,7 +265,7 @@ export const InventoryPage = () => {
         </div>
       </div>
 
-      {/* Inventory Table matching ERP inventory breakdown */}
+      {/* Inventory Table */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
@@ -349,7 +346,7 @@ export const InventoryPage = () => {
                       <td className="px-6 py-4 text-center font-semibold text-amber-600">
                         {reserved > 0 ? reserved : '0'}
                       </td>
-                      <td className={`px-6 py-4 text-center text-sm font-bold ${availColor}`}>
+                      <td className={`px-6 py-4 text-center ${availColor}`}>
                         {available}
                       </td>
                       <td className="px-6 py-4 text-center">{statusBadge}</td>
@@ -357,9 +354,10 @@ export const InventoryPage = () => {
                         {isOps && (
                           <button
                             onClick={() => openAdjustModal(inv)}
-                            className="px-3 py-1 text-xs font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg transition cursor-pointer"
+                            className="inline-flex items-center space-x-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition cursor-pointer"
                           >
-                            Adjust
+                            <SlidersHorizontal className="w-3.5 h-3.5" />
+                            <span>Adjust</span>
                           </button>
                         )}
                       </td>
@@ -377,16 +375,16 @@ export const InventoryPage = () => {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
             <h2 className="text-xl font-bold font-serif text-slate-900 mb-1">
-              Stock Inward
+              Receive Inward Stock
             </h2>
             <p className="text-xs text-slate-500 mb-4">
-              Receive raw materials or finished products into warehouse batches.
+              Add verified physical quantity from suppliers to a warehouse batch.
             </p>
 
             <form onSubmit={handleStockInward} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Product Item
+                  Item / Product
                 </label>
                 <select
                   required
@@ -405,7 +403,7 @@ export const InventoryPage = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Target Warehouse
+                  Destination Warehouse
                 </label>
                 <select
                   required
@@ -416,7 +414,7 @@ export const InventoryPage = () => {
                   <option value="">Select Warehouse...</option>
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
-                      {loc.name} ({loc.code})
+                      {loc.name}
                     </option>
                   ))}
                 </select>
@@ -440,7 +438,7 @@ export const InventoryPage = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                    Quantity
+                    Quantity Inward
                   </label>
                   <input
                     type="number"
@@ -453,6 +451,19 @@ export const InventoryPage = () => {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  Inward Notes
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Purchase order PO-9901 arrival"
+                  value={inwardForm.notes}
+                  onChange={(e) => setInwardForm({ ...inwardForm, notes: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                />
               </div>
 
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
@@ -475,38 +486,71 @@ export const InventoryPage = () => {
         </div>
       )}
 
-      {/* Stock Adjustment Modal */}
+      {/* Stock Adjustment Modal with Full Dropdown Selection */}
       {showAdjustModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
             <h2 className="text-xl font-bold font-serif text-slate-900 mb-1">
               Stock Adjustment
             </h2>
             <p className="text-xs text-slate-500 mb-4">
-              Update physical count post physical verification audit.
+              Select any inventory batch to correct physical stock counts post verification audit.
             </p>
 
             <form onSubmit={handleStockAdjust} className="space-y-4">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
-                <div>
-                  <span className="text-slate-500">Item: </span>
-                  <span className="font-bold text-slate-800">
-                    {selectedBatchForAdjust?.itemName} ({selectedBatchForAdjust?.itemSku})
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500">Warehouse: </span>
-                  <span className="font-semibold text-slate-800">
-                    {selectedBatchForAdjust?.locationName}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500">Batch: </span>
-                  <span className="font-mono text-slate-800 font-bold">
-                    {selectedBatchForAdjust?.batchNumber}
-                  </span>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  Select Item / Warehouse / Batch to Adjust
+                </label>
+                <select
+                  required
+                  value={selectedBatchForAdjust?.id || ''}
+                  onChange={(e) => {
+                    const found = inventory.find((inv) => inv.id === e.target.value);
+                    if (found) {
+                      setSelectedBatchForAdjust(found);
+                      setAdjustForm({
+                        itemId: found.itemId,
+                        locationId: found.locationId,
+                        batchNumber: found.batchNumber,
+                        newPhysicalQuantity: found.physicalQuantity,
+                        notes: '',
+                      });
+                    }
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Choose Inventory Batch...</option>
+                  {inventory.map((inv) => (
+                    <option key={inv.id} value={inv.id}>
+                      {inv.itemName} · {inv.locationName} · Batch: {inv.batchNumber} (Current: {inv.physicalQuantity}, Reserved: {inv.reservedQuantity})
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              {selectedBatchForAdjust && (
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Selected Item:</span>
+                    <span className="font-bold text-slate-900">
+                      {selectedBatchForAdjust.itemName} ({selectedBatchForAdjust.itemSku})
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Warehouse:</span>
+                    <span className="font-medium text-slate-800">
+                      {selectedBatchForAdjust.locationName}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Current Stock Levels:</span>
+                    <span className="font-mono font-bold text-indigo-700">
+                      Physical: {selectedBatchForAdjust.physicalQuantity} | Reserved: {selectedBatchForAdjust.reservedQuantity} | Available: {selectedBatchForAdjust.availableQuantity}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
@@ -523,8 +567,13 @@ export const InventoryPage = () => {
                       newPhysicalQuantity: Number(e.target.value),
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 font-bold text-slate-900"
                 />
+                {selectedBatchForAdjust && (
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Cannot be lower than reserved quantity ({selectedBatchForAdjust.reservedQuantity}).
+                  </span>
+                )}
               </div>
 
               <div>
@@ -533,7 +582,7 @@ export const InventoryPage = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Cycle count verification"
+                  placeholder="e.g. 20 units damaged during transit inspection"
                   value={adjustForm.notes}
                   onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
@@ -550,7 +599,8 @@ export const InventoryPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-bold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl transition shadow-sm"
+                  disabled={!selectedBatchForAdjust}
+                  className="px-5 py-2 text-sm font-bold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Apply Adjustment
                 </button>
