@@ -175,7 +175,7 @@ async function dispatchTransfer(transferId, userId) {
     });
 
     return updatedTransfer;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 /**
@@ -277,7 +277,7 @@ async function receiveTransfer(transferId, userId) {
     });
 
     return updatedTransfer;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 /**

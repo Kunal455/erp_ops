@@ -191,7 +191,7 @@ async function reserveOrderStock(orderId, userId) {
     });
 
     return updatedOrder;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 /**
@@ -270,7 +270,7 @@ async function cancelOrder(orderId, userId) {
         createdBy: { select: { id: true, name: true, email: true, role: true } },
       },
     });
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 /**
@@ -348,7 +348,7 @@ async function fulfillOrder(orderId, userId) {
         createdBy: { select: { id: true, name: true, email: true, role: true } },
       },
     });
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 /**

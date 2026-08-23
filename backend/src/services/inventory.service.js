@@ -180,7 +180,7 @@ async function stockIn(dto) {
       ...inventory,
       availableQuantity: inventory.physicalQuantity - inventory.reservedQuantity,
     };
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 /**
@@ -241,7 +241,7 @@ async function adjustStock(dto) {
       ...updated,
       availableQuantity: updated.physicalQuantity - updated.reservedQuantity,
     };
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 /**
