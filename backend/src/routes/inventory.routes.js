@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const inventoryController = require('../controllers/inventory.controller');
-const { authenticate, requireRole } = require('../middlewares/auth');
+const { requireAuth, requireRole } = require('../middlewares/auth');
 const { validate } = require('../middlewares/validate');
 const { z } = require('zod');
 
@@ -26,25 +26,26 @@ const adjustStockSchema = z.object({
   }),
 });
 
-router.get('/locations', authenticate, inventoryController.getLocations);
-router.get('/items', authenticate, inventoryController.getItems);
-router.get('/summary', authenticate, inventoryController.getStockSummary);
-router.get('/transactions', authenticate, inventoryController.getTransactions);
+// View Inventory (ADMIN, OPERATIONS_USER, SALES_USER)
+router.get('/locations', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER', 'SALES_USER'), inventoryController.getLocations);
+router.get('/items', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER', 'SALES_USER'), inventoryController.getItems);
+router.get('/summary', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER', 'SALES_USER'), inventoryController.getStockSummary);
+router.get('/transactions', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER', 'SALES_USER'), inventoryController.getTransactions);
+router.get('/', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER', 'SALES_USER'), inventoryController.getInventory);
 
-router.get('/', authenticate, inventoryController.getInventory);
-
+// Modify Inventory (OPERATIONS_USER ONLY)
 router.post(
   '/stock-in',
-  authenticate,
-  requireRole('ADMIN', 'OPERATIONS'),
+  requireAuth,
+  requireRole('OPERATIONS_USER'),
   validate(stockInSchema),
   inventoryController.stockIn
 );
 
 router.patch(
   '/adjust',
-  authenticate,
-  requireRole('ADMIN', 'OPERATIONS'),
+  requireAuth,
+  requireRole('OPERATIONS_USER'),
   validate(adjustStockSchema),
   inventoryController.adjustStock
 );

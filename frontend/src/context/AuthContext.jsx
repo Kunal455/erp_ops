@@ -60,15 +60,25 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('erp_user');
   };
 
-  const effectiveRole = roleOverride || user?.role || 'OPERATIONS';
+  const normalizeRole = (r) => {
+    if (!r) return 'OPERATIONS_USER';
+    const upper = r.toUpperCase();
+    if (upper === 'ADMIN') return 'ADMIN';
+    if (upper === 'OPERATIONS' || upper === 'OPERATIONS_USER') return 'OPERATIONS_USER';
+    if (upper === 'SALES' || upper === 'SALES_USER') return 'SALES_USER';
+    return upper;
+  };
+
+  const effectiveRole = normalizeRole(roleOverride || user?.role);
 
   const isAdmin = effectiveRole === 'ADMIN';
-  const isOps = effectiveRole === 'OPERATIONS';
-  const isSales = effectiveRole === 'SALES';
+  const isOps = effectiveRole === 'OPERATIONS_USER';
+  const isSales = effectiveRole === 'SALES_USER';
 
   const hasRole = (roles) => {
     if (!user) return false;
-    return roles.includes(effectiveRole);
+    const normalized = roles.map(normalizeRole);
+    return normalized.includes(effectiveRole);
   };
 
   return (

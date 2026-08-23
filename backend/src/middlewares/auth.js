@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const { config, prisma } = require('../config');
 const { UnauthorizedError, ForbiddenError } = require('../utils/errors');
 
-async function authenticate(req, res, next) {
+async function requireAuth(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -38,13 +38,11 @@ function requireRole(...roles) {
     }
 
     const normalizedRoles = roles.map((r) => r.toUpperCase());
-    const userRole = req.user.role.toUpperCase();
+    const userRole = req.user.role ? req.user.role.toUpperCase() : '';
 
     if (!normalizedRoles.includes(userRole)) {
       return next(
-        ForbiddenError(
-          `Access denied. Required role(s): [${roles.join(', ')}], your role: ${req.user.role}`
-        )
+        ForbiddenError('You do not have permission to perform this operation')
       );
     }
 
@@ -53,6 +51,7 @@ function requireRole(...roles) {
 }
 
 module.exports = {
-  authenticate,
+  requireAuth,
+  authenticate: requireAuth,
   requireRole,
 };

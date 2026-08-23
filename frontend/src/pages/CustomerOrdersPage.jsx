@@ -192,7 +192,7 @@ export const CustomerOrdersPage = () => {
           </p>
         </div>
 
-        {(isAdmin || isSales) && (
+        {isSales && (
           <button
             onClick={() => {
               setError(null);
@@ -328,12 +328,12 @@ export const CustomerOrdersPage = () => {
                       </td>
                       <td className="px-6 py-4 text-center">{getStatusBadge(ord.status)}</td>
                       <td className="px-6 py-4 text-right">
-                        {(isAdmin || isSales) && (
+                        {isSales && (
                           <div className="flex items-center justify-end space-x-2">
                             {ord.status === 'DRAFT' && (
                               <button
                                 onClick={() => handleReserveStock(ord.id)}
-                                className="px-3 py-1 text-xs font-semibold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-lg transition shadow-xs"
+                                className="px-3 py-1 text-xs font-semibold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-lg transition shadow-xs cursor-pointer"
                               >
                                 Reserve Stock
                               </button>
@@ -342,13 +342,13 @@ export const CustomerOrdersPage = () => {
                               <>
                                 <button
                                   onClick={() => handleFulfillOrder(ord.id)}
-                                  className="px-3 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition"
+                                  className="px-3 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition cursor-pointer"
                                 >
                                   Deliver
                                 </button>
                                 <button
                                   onClick={() => handleCancelOrder(ord.id)}
-                                  className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                  className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
                                 >
                                   Cancel
                                 </button>

@@ -1,10 +1,19 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { prisma, config } = require('../config');
-const { BadRequestError, UnauthorizedError, ConflictError, NotFoundError } = require('../utils/errors');
+const { BadRequestError, UnauthorizedError, ConflictError, NotFoundError, ForbiddenError } = require('../utils/errors');
 
-async function signup(dto) {
-  const { name, email, password, role = 'OPERATIONS', locationId } = dto;
+function normalizeRole(role) {
+  if (!role) return 'OPERATIONS_USER';
+  const r = role.toUpperCase();
+  if (r === 'OPERATIONS' || r === 'OPERATIONS_USER') return 'OPERATIONS_USER';
+  if (r === 'SALES' || r === 'SALES_USER') return 'SALES_USER';
+  if (r === 'ADMIN') return 'ADMIN';
+  return 'OPERATIONS_USER';
+}
+
+async function signup(dto, allowAdmin = false) {
+  const { name, email, password, role = 'OPERATIONS_USER', locationId } = dto;
 
   if (!name || !email || !password) {
     throw BadRequestError('Name, email, and password are required');
@@ -21,6 +30,13 @@ async function signup(dto) {
     throw ConflictError('A user with this email address already exists');
   }
 
+  const targetRole = normalizeRole(role);
+
+  // Security Rule: Public signup cannot create ADMIN accounts
+  if (targetRole === 'ADMIN' && !allowAdmin) {
+    throw ForbiddenError('Admin accounts cannot be created via public signup. Please contact an administrator.');
+  }
+
   // Validate location if provided
   if (locationId) {
     const location = await prisma.location.findUnique({
@@ -34,16 +50,13 @@ async function signup(dto) {
   // Hash password
   const passwordHash = await bcrypt.hash(password, 10);
 
-  // Normalize role
-  const normalizedRole = (role || 'OPERATIONS').toUpperCase();
-
   // Create user
   const user = await prisma.user.create({
     data: {
       name: name.trim(),
       email: normalizedEmail,
       passwordHash,
-      role: normalizedRole,
+      role: targetRole,
       locationId: locationId || null,
     },
     include: { location: true },

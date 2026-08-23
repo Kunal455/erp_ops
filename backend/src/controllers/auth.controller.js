@@ -34,6 +34,17 @@ async function login(req, res, next) {
   }
 }
 
+async function logout(req, res, next) {
+  try {
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function getMe(req, res, next) {
   try {
     const user = await authService.getProfile(req.user.id);
@@ -61,6 +72,7 @@ async function listUsers(req, res, next) {
 module.exports = {
   signup,
   login,
+  logout,
   getMe,
   listUsers,
 };

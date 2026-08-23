@@ -1,12 +1,25 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Search, LogOut, Shield, ChevronDown, Sparkles, Zap, Command } from 'lucide-react';
+import { Search, LogOut, Shield, ChevronDown, Zap } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, role, logout, setRoleOverride, isRoleOverridden } = useAuth();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
 
-  const availableRoles = ['ADMIN', 'OPERATIONS', 'SALES'];
+  const availableRoles = ['ADMIN', 'OPERATIONS_USER', 'SALES_USER'];
+
+  const getRoleBadgeStyle = (r) => {
+    switch (r) {
+      case 'ADMIN':
+        return 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100';
+      case 'OPERATIONS_USER':
+        return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+      case 'SALES_USER':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100';
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 px-6 py-3.5 flex items-center justify-between shadow-xs">
@@ -50,13 +63,9 @@ export const Navbar = () => {
         <div className="relative">
           <button
             onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-              role === 'ADMIN'
-                ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
-                : role === 'OPERATIONS'
-                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-            }`}
+            className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${getRoleBadgeStyle(
+              role
+            )}`}
           >
             <Shield className="w-3.5 h-3.5" />
             <span>Role: {role}</span>
@@ -67,9 +76,9 @@ export const Navbar = () => {
           </button>
 
           {showRoleMenu && (
-            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in zoom-in-95">
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in zoom-in-95">
               <div className="px-3 py-1.5 text-[11px] font-semibold uppercase text-slate-400 border-b border-slate-100">
-                Switch Active Role
+                Switch Active Role View
               </div>
               {availableRoles.map((r) => (
                 <button
@@ -78,12 +87,12 @@ export const Navbar = () => {
                     setRoleOverride(r);
                     setShowRoleMenu(false);
                   }}
-                  className={`w-full text-left px-3.5 py-2 text-xs font-medium flex items-center justify-between hover:bg-slate-50 transition ${
+                  className={`w-full text-left px-3.5 py-2 text-xs font-medium flex items-center justify-between hover:bg-slate-50 transition cursor-pointer ${
                     role === r ? 'text-indigo-600 font-bold bg-indigo-50/50' : 'text-slate-700'
                   }`}
                 >
                   <span>{r}</span>
-                  {role === r && <span className="text-xs">✓</span>}
+                  {role === r && <span className="text-xs text-indigo-600">✓</span>}
                 </button>
               ))}
               {isRoleOverridden && (
@@ -93,7 +102,7 @@ export const Navbar = () => {
                       setRoleOverride(null);
                       setShowRoleMenu(false);
                     }}
-                    className="w-full text-left px-3.5 py-1.5 text-[11px] text-amber-600 hover:bg-amber-50 font-medium"
+                    className="w-full text-left px-3.5 py-1.5 text-[11px] text-amber-600 hover:bg-amber-50 font-medium cursor-pointer"
                   >
                     Reset to Auth Role ({user?.role})
                   </button>
@@ -115,7 +124,7 @@ export const Navbar = () => {
           <button
             onClick={logout}
             title="Sign out"
-            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>

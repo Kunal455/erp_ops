@@ -155,7 +155,7 @@ export const TransfersPage = () => {
           </p>
         </div>
 
-        {(isAdmin || isOps) && (
+        {isOps && (
           <button
             onClick={() => {
               setError(null);
@@ -291,12 +291,12 @@ export const TransfersPage = () => {
                     </td>
                     <td className="px-6 py-4 text-center">{getStatusBadge(trf.status)}</td>
                     <td className="px-6 py-4 text-right">
-                      {(isAdmin || isOps) && (
+                      {isOps && (
                         <div className="flex items-center justify-end space-x-2">
                           {trf.status === 'REQUESTED' && (
                             <button
                               onClick={() => handleDispatch(trf.id)}
-                              className="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-lg transition"
+                              className="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-lg transition cursor-pointer"
                             >
                               <Send className="w-3 h-3" />
                               <span>Dispatch</span>
@@ -305,7 +305,7 @@ export const TransfersPage = () => {
                           {trf.status === 'DISPATCHED' && (
                             <button
                               onClick={() => handleReceive(trf.id)}
-                              className="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition"
+                              className="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition cursor-pointer"
                             >
                               <DownloadCloud className="w-3 h-3" />
                               <span>Receive</span>

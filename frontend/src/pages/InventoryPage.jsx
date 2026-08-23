@@ -150,7 +150,7 @@ export const InventoryPage = () => {
           </p>
         </div>
 
-        {(isAdmin || isOps) && (
+        {isOps && (
           <div className="flex items-center space-x-3">
             <button
               onClick={() => {
@@ -346,10 +346,10 @@ export const InventoryPage = () => {
                       </td>
                       <td className="px-6 py-4 text-center">{statusBadge}</td>
                       <td className="px-6 py-4 text-right">
-                        {(isAdmin || isOps) && (
+                        {isOps && (
                           <button
                             onClick={() => openAdjustModal(inv)}
-                            className="px-3 py-1 text-xs font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg transition"
+                            className="px-3 py-1 text-xs font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg transition cursor-pointer"
                           >
                             Adjust
                           </button>

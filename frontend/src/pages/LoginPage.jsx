@@ -15,15 +15,14 @@ import {
   ShieldCheck,
   Star,
   UserPlus,
-  LogIn,
 } from 'lucide-react';
 
 export const LoginPage = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('admin@fundsroom.com');
+  const [email, setEmail] = useState('admin@erp.com');
   const [password, setPassword] = useState('admin123');
-  const [role, setRole] = useState('OPERATIONS');
+  const [role, setRole] = useState('OPERATIONS_USER');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState(null);
@@ -54,7 +53,7 @@ export const LoginPage = () => {
       setError(
         backendMessage ||
           (isSignup
-            ? 'Registration failed. Please check inputs.'
+            ? 'Registration failed. Please check your credentials.'
             : 'Invalid email or password. Please try again.')
       );
     } finally {
@@ -74,12 +73,13 @@ export const LoginPage = () => {
     setName('');
     setEmail('');
     setPassword('');
+    setRole('OPERATIONS_USER');
     setError(null);
   };
 
   const switchToSignin = () => {
     setIsSignup(false);
-    setEmail('admin@fundsroom.com');
+    setEmail('admin@erp.com');
     setPassword('admin123');
     setError(null);
   };
@@ -172,14 +172,14 @@ export const LoginPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Role selection for signup */}
+            {/* Role selection for signup (OPERATIONS_USER or SALES_USER only) */}
             {isSignup && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
@@ -188,12 +188,14 @@ export const LoginPage = () => {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition cursor-pointer"
                 >
-                  <option value="ADMIN">ADMIN (Full Access)</option>
-                  <option value="OPERATIONS">OPERATIONS (Inventory, Transfers & Work Orders)</option>
-                  <option value="SALES">SALES (Inventory & Customer Orders)</option>
+                  <option value="OPERATIONS_USER">OPERATIONS_USER (Inventory & Internal Transfers)</option>
+                  <option value="SALES_USER">SALES_USER (Customer Orders & Reservations)</option>
                 </select>
+                <div className="text-[11px] text-slate-400 mt-1.5">
+                  * Note: ADMIN accounts are provisioned securely by system database seeds.
+                </div>
               </div>
             )}
 
@@ -243,22 +245,22 @@ export const LoginPage = () => {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('admin@fundsroom.com', 'admin123')}
-                  className="px-3 py-2 text-xs font-semibold rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition"
+                  onClick={() => handleQuickLogin('admin@erp.com', 'admin123')}
+                  className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition cursor-pointer"
                 >
                   Admin
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('ops@fundsroom.com', 'ops123')}
-                  className="px-3 py-2 text-xs font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                  onClick={() => handleQuickLogin('operations@erp.com', 'operations123')}
+                  className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition cursor-pointer"
                 >
                   Operations
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('sales@fundsroom.com', 'sales123')}
-                  className="px-3 py-2 text-xs font-semibold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                  onClick={() => handleQuickLogin('sales@erp.com', 'sales123')}
+                  className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
                 >
                   Sales
                 </button>
@@ -309,7 +311,7 @@ export const LoginPage = () => {
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Rich Deep Purple Hero Banner matching the screenshot */}
+      {/* RIGHT COLUMN: Rich Deep Purple Hero Banner */}
       <div className="w-full lg:w-[52%] bg-[#27144d] text-white p-8 sm:p-12 lg:p-16 xl:p-20 flex flex-col justify-between relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>

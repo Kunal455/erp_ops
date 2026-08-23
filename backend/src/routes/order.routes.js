@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const orderController = require('../controllers/order.controller');
-const { authenticate, requireRole } = require('../middlewares/auth');
+const { requireAuth, requireRole } = require('../middlewares/auth');
 const { validate } = require('../middlewares/validate');
 const { z } = require('zod');
 
@@ -23,35 +23,37 @@ const createOrderSchema = z.object({
   }),
 });
 
-router.get('/:id', authenticate, requireRole('ADMIN', 'SALES'), orderController.getOrderById);
-router.get('/', authenticate, requireRole('ADMIN', 'SALES'), orderController.listOrders);
+// View Customer Orders (ADMIN, SALES_USER)
+router.get('/:id', requireAuth, requireRole('ADMIN', 'SALES_USER'), orderController.getOrderById);
+router.get('/', requireAuth, requireRole('ADMIN', 'SALES_USER'), orderController.listOrders);
 
+// Create Customer Order & Reserve Stock (SALES_USER ONLY)
 router.post(
   '/',
-  authenticate,
-  requireRole('ADMIN', 'SALES'),
+  requireAuth,
+  requireRole('SALES_USER'),
   validate(createOrderSchema),
   orderController.createOrder
 );
 
 router.post(
   '/:id/reserve',
-  authenticate,
-  requireRole('ADMIN', 'SALES'),
+  requireAuth,
+  requireRole('SALES_USER'),
   orderController.reserveStock
 );
 
 router.post(
   '/:id/cancel',
-  authenticate,
-  requireRole('ADMIN', 'SALES'),
+  requireAuth,
+  requireRole('SALES_USER', 'ADMIN'),
   orderController.cancelOrder
 );
 
 router.post(
   '/:id/fulfill',
-  authenticate,
-  requireRole('ADMIN', 'SALES'),
+  requireAuth,
+  requireRole('SALES_USER', 'ADMIN'),
   orderController.fulfillOrder
 );
 

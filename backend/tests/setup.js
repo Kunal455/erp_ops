@@ -1,19 +1,16 @@
 const { prisma } = require('../src/config');
 const bcrypt = require('bcryptjs');
 
-let adminToken;
-let opsToken;
-let salesToken;
+let locNorth;
+let locSouth;
 let adminUser;
 let opsUser;
 let salesUser;
-let locNorth;
-let locSouth;
 let itemSteel;
 let itemMotor;
 
 beforeAll(async () => {
-  // Ensure DB is clean and seeded for test execution
+  // Clean DB before tests
   await prisma.inventoryTransaction.deleteMany({});
   await prisma.customerOrderItem.deleteMany({});
   await prisma.customerOrder.deleteMany({});
@@ -51,7 +48,7 @@ beforeAll(async () => {
       email: 'ops.test@fundsroom.com',
       name: 'Ops Tester',
       passwordHash: pwdHash,
-      role: 'OPERATIONS',
+      role: 'OPERATIONS_USER',
       locationId: locNorth.id,
     },
   });
@@ -61,7 +58,7 @@ beforeAll(async () => {
       email: 'sales.test@fundsroom.com',
       name: 'Sales Tester',
       passwordHash: pwdHash,
-      role: 'SALES',
+      role: 'SALES_USER',
       locationId: locNorth.id,
     },
   });
@@ -83,14 +80,6 @@ beforeAll(async () => {
       uom: 'PCS',
     },
   });
-
-  module.exports.locNorth = locNorth;
-  module.exports.locSouth = locSouth;
-  module.exports.adminUser = adminUser;
-  module.exports.opsUser = opsUser;
-  module.exports.salesUser = salesUser;
-  module.exports.itemSteel = itemSteel;
-  module.exports.itemMotor = itemMotor;
 });
 
 afterAll(async () => {

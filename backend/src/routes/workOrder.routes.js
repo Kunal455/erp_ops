@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const workOrderController = require('../controllers/workOrder.controller');
-const { authenticate, requireRole } = require('../middlewares/auth');
+const { requireAuth, requireRole } = require('../middlewares/auth');
 const { validate } = require('../middlewares/validate');
 const { z } = require('zod');
 
@@ -30,21 +30,24 @@ const updateStatusSchema = z.object({
   }),
 });
 
-router.get('/stock-check/calculate', authenticate, workOrderController.calculateStockCheck);
-router.get('/:id', authenticate, workOrderController.getWorkOrderById);
-router.get('/', authenticate, workOrderController.listWorkOrders);
+// View Work Orders (ADMIN, OPERATIONS_USER)
+router.get('/stock-check/calculate', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER'), workOrderController.calculateStockCheck);
+router.get('/:id', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER'), workOrderController.getWorkOrderById);
+router.get('/', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER'), workOrderController.listWorkOrders);
 
+// Create Work Order (ADMIN ONLY)
 router.post(
   '/',
-  authenticate,
+  requireAuth,
   requireRole('ADMIN'),
   validate(createWorkOrderSchema),
   workOrderController.createWorkOrder
 );
 
+// Update Status (ADMIN ONLY)
 router.patch(
   '/:id/status',
-  authenticate,
+  requireAuth,
   requireRole('ADMIN'),
   validate(updateStatusSchema),
   workOrderController.updateStatus

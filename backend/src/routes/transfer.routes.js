@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const transferController = require('../controllers/transfer.controller');
-const { authenticate, requireRole } = require('../middlewares/auth');
+const { requireAuth, requireRole } = require('../middlewares/auth');
 const { validate } = require('../middlewares/validate');
 const { z } = require('zod');
 
@@ -16,28 +16,30 @@ const transferRequestSchema = z.object({
   }),
 });
 
-router.get('/:id', authenticate, requireRole('ADMIN', 'OPERATIONS'), transferController.getTransferById);
-router.get('/', authenticate, requireRole('ADMIN', 'OPERATIONS'), transferController.listTransfers);
+// View Transfers (ADMIN, OPERATIONS_USER)
+router.get('/:id', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER'), transferController.getTransferById);
+router.get('/', requireAuth, requireRole('ADMIN', 'OPERATIONS_USER'), transferController.listTransfers);
 
+// Create, Dispatch & Receive Transfers (OPERATIONS_USER ONLY)
 router.post(
   '/',
-  authenticate,
-  requireRole('ADMIN', 'OPERATIONS'),
+  requireAuth,
+  requireRole('OPERATIONS_USER'),
   validate(transferRequestSchema),
   transferController.requestTransfer
 );
 
 router.post(
   '/:id/dispatch',
-  authenticate,
-  requireRole('ADMIN', 'OPERATIONS'),
+  requireAuth,
+  requireRole('OPERATIONS_USER'),
   transferController.dispatchTransfer
 );
 
 router.post(
   '/:id/receive',
-  authenticate,
-  requireRole('ADMIN', 'OPERATIONS'),
+  requireAuth,
+  requireRole('OPERATIONS_USER'),
   transferController.receiveTransfer
 );
 

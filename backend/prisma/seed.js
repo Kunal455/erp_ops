@@ -48,12 +48,44 @@ async function main() {
 
   console.log('📍 Seeded Locations:', locNorth.name, locSouth.name, locCentral.name);
 
-  // 2. Seed Users with hashed passwords
+  // 2. Seed Users with exact roles
   const passwordHashAdmin = await bcrypt.hash('admin123', 10);
-  const passwordHashOps = await bcrypt.hash('ops123', 10);
+  const passwordHashOps = await bcrypt.hash('operations123', 10);
   const passwordHashSales = await bcrypt.hash('sales123', 10);
 
+  // Primary specification seed users
   const adminUser = await prisma.user.create({
+    data: {
+      email: 'admin@erp.com',
+      name: 'System Admin',
+      passwordHash: passwordHashAdmin,
+      role: 'ADMIN',
+      locationId: locNorth.id,
+    },
+  });
+
+  const opsUser = await prisma.user.create({
+    data: {
+      email: 'operations@erp.com',
+      name: 'Operations Manager',
+      passwordHash: passwordHashOps,
+      role: 'OPERATIONS_USER',
+      locationId: locSouth.id,
+    },
+  });
+
+  const salesUser = await prisma.user.create({
+    data: {
+      email: 'sales@erp.com',
+      name: 'Sales Representative',
+      passwordHash: passwordHashSales,
+      role: 'SALES_USER',
+      locationId: locCentral.id,
+    },
+  });
+
+  // Secondary aliases for backwards compatibility
+  await prisma.user.create({
     data: {
       email: 'admin@fundsroom.com',
       name: 'Alice Admin',
@@ -63,27 +95,30 @@ async function main() {
     },
   });
 
-  const opsUser = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'ops@fundsroom.com',
       name: 'Bob Operations',
       passwordHash: passwordHashOps,
-      role: 'OPERATIONS',
+      role: 'OPERATIONS_USER',
       locationId: locSouth.id,
     },
   });
 
-  const salesUser = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'sales@fundsroom.com',
       name: 'Charlie Sales',
       passwordHash: passwordHashSales,
-      role: 'SALES',
+      role: 'SALES_USER',
       locationId: locCentral.id,
     },
   });
 
-  console.log('👤 Seeded Users: Admin (admin@fundsroom.com), Ops (ops@fundsroom.com), Sales (sales@fundsroom.com)');
+  console.log('👤 Seeded Users:');
+  console.log('   - Admin: admin@erp.com (Role: ADMIN)');
+  console.log('   - Operations: operations@erp.com (Role: OPERATIONS_USER)');
+  console.log('   - Sales: sales@erp.com (Role: SALES_USER)');
 
   // 3. Seed Items
   const itemSteel = await prisma.item.create({
@@ -98,42 +133,42 @@ async function main() {
 
   const itemCopper = await prisma.item.create({
     data: {
-      sku: 'COMP-COPPER-01',
+      sku: 'RAW-COPPER-01',
       name: 'Copper Wiring Coil',
-      category: 'Components',
-      uom: 'MTR',
-      description: 'High conductivity copper winding wire',
+      category: 'Raw Material',
+      uom: 'METER',
+      description: 'Heavy duty insulated copper wiring',
     },
   });
 
   const itemMotor = await prisma.item.create({
     data: {
-      sku: 'PROD-MOTOR-X1',
+      sku: 'FIN-MOTOR-X1',
       name: 'Industrial Electric Motor X1',
       category: 'Finished Goods',
       uom: 'PCS',
-      description: 'Heavy duty 5HP 3-phase electric motor',
+      description: 'High-torque 3-phase AC induction motor',
     },
   });
 
   const itemPump = await prisma.item.create({
     data: {
-      sku: 'PROD-PUMP-V2',
+      sku: 'COMP-PUMP-V2',
       name: 'Hydraulic Fluid Pump V2',
-      category: 'Finished Goods',
+      category: 'Components',
       uom: 'PCS',
-      description: 'High pressure dual-chamber hydraulic pump',
+      description: 'Rotary vane hydraulic pump mechanism',
     },
   });
 
-  console.log('📦 Seeded Master Items:', itemSteel.name, itemCopper.name, itemMotor.name, itemPump.name);
+  console.log('📦 Seeded Master Items:', itemSteel.sku, itemCopper.sku, itemMotor.sku, itemPump.sku);
 
-  // 4. Seed Bill of Materials (BOM) for Electric Motor
+  // 4. Seed Bill of Materials (BOM)
   await prisma.billOfMaterial.create({
     data: {
       parentItemId: itemMotor.id,
       componentItemId: itemSteel.id,
-      quantityPerUnit: 15,
+      quantityPerUnit: 15.0,
     },
   });
 
@@ -141,20 +176,21 @@ async function main() {
     data: {
       parentItemId: itemMotor.id,
       componentItemId: itemCopper.id,
-      quantityPerUnit: 8,
+      quantityPerUnit: 8.0,
     },
   });
 
   console.log('📐 Seeded BOM structure for Electric Motor (15kg Steel + 8m Copper per Motor).');
 
-  // 5. Seed Inventory Batches
+  // 5. Seed Inventory with Batches & Reservations
+  // North Warehouse
   await prisma.inventory.create({
     data: {
       itemId: itemSteel.id,
       locationId: locNorth.id,
       batchNumber: 'BAT-ST-001',
-      physicalQuantity: 500,
-      reservedQuantity: 0,
+      physicalQuantity: 100.0,
+      reservedQuantity: 20.0,
     },
   });
 
@@ -163,8 +199,8 @@ async function main() {
       itemId: itemCopper.id,
       locationId: locNorth.id,
       batchNumber: 'BAT-CP-001',
-      physicalQuantity: 200,
-      reservedQuantity: 0,
+      physicalQuantity: 250.0,
+      reservedQuantity: 0.0,
     },
   });
 
@@ -172,93 +208,57 @@ async function main() {
     data: {
       itemId: itemMotor.id,
       locationId: locNorth.id,
-      batchNumber: 'BAT-MOT-001',
-      physicalQuantity: 50,
-      reservedQuantity: 10,
+      batchNumber: 'BAT-MO-001',
+      physicalQuantity: 30.0,
+      reservedQuantity: 5.0,
     },
   });
 
+  // South Plant
   await prisma.inventory.create({
     data: {
       itemId: itemSteel.id,
       locationId: locSouth.id,
       batchNumber: 'BAT-ST-002',
-      physicalQuantity: 40,
-      reservedQuantity: 0,
-    },
-  });
-
-  await prisma.inventory.create({
-    data: {
-      itemId: itemMotor.id,
-      locationId: locSouth.id,
-      batchNumber: 'BAT-MOT-002',
-      physicalQuantity: 20,
-      reservedQuantity: 0,
+      physicalQuantity: 10.0,
+      reservedQuantity: 0.0,
     },
   });
 
   await prisma.inventory.create({
     data: {
       itemId: itemPump.id,
-      locationId: locCentral.id,
-      batchNumber: 'BAT-PMP-001',
-      physicalQuantity: 80,
-      reservedQuantity: 0,
+      locationId: locSouth.id,
+      batchNumber: 'BAT-PU-001',
+      physicalQuantity: 50.0,
+      reservedQuantity: 10.0,
     },
   });
 
   console.log('📊 Seeded Multi-Location Inventory with Batches & Reservations.');
 
-  // 6. Log Initial Inventory Transactions
-  const initialStockLogs = [
-    { itemId: itemSteel.id, locationId: locNorth.id, batchNumber: 'BAT-ST-001', quantity: 500, physical: 500, reserved: 0 },
-    { itemId: itemCopper.id, locationId: locNorth.id, batchNumber: 'BAT-CP-001', quantity: 200, physical: 200, reserved: 0 },
-    { itemId: itemMotor.id, locationId: locNorth.id, batchNumber: 'BAT-MOT-001', quantity: 50, physical: 50, reserved: 10 },
-    { itemId: itemSteel.id, locationId: locSouth.id, batchNumber: 'BAT-ST-002', quantity: 40, physical: 40, reserved: 0 },
-    { itemId: itemMotor.id, locationId: locSouth.id, batchNumber: 'BAT-MOT-002', quantity: 20, physical: 20, reserved: 0 },
-    { itemId: itemPump.id, locationId: locCentral.id, batchNumber: 'BAT-PMP-001', quantity: 80, physical: 80, reserved: 0 },
-  ];
-
-  for (const log of initialStockLogs) {
-    await prisma.inventoryTransaction.create({
-      data: {
-        itemId: log.itemId,
-        locationId: log.locationId,
-        batchNumber: log.batchNumber,
-        type: 'STOCK_IN',
-        quantity: log.quantity,
-        physicalBalanceAfter: log.physical,
-        reservedBalanceAfter: log.reserved,
-        referenceType: 'MANUAL',
-        performedById: adminUser.id,
-        notes: 'Initial ERP warehouse balance onboarding',
-      },
-    });
-  }
-
-  // 7. Seed Sample Work Order
-  const sampleWO = await prisma.workOrder.create({
+  // 6. Seed Work Order
+  const sampleWorkOrder = await prisma.workOrder.create({
     data: {
       workOrderNumber: 'WO-20260822-0001',
       locationId: locSouth.id,
       itemId: itemMotor.id,
-      requiredQuantity: 10,
-      assignedUserId: opsUser.id,
+      requiredQuantity: 5,
+      assignedUserId: adminUser.id,
       status: 'ASSIGNED',
-      notes: 'Assemble 10x Electric Motors for Q3 Distribution',
+      notes: 'Initial production batch for regional distribution.',
       materials: {
         create: [
-          { materialItemId: itemSteel.id, requiredQuantity: 150 },
-          { materialItemId: itemCopper.id, requiredQuantity: 80 },
+          { materialItemId: itemSteel.id, requiredQuantity: 75.0, consumedQuantity: 0 },
+          { materialItemId: itemCopper.id, requiredQuantity: 40.0, consumedQuantity: 0 },
         ],
       },
     },
   });
 
-  console.log('📋 Seeded Sample Work Order:', sampleWO.workOrderNumber);
+  console.log('📋 Seeded Sample Work Order:', sampleWorkOrder.workOrderNumber);
 
-  // 8. Seed Sample Stock Transfer
+  // 7. Seed Stock Transfer
   const sampleTransfer = await prisma.stockTransfer.create({
     data: {
       transferNumber: 'TRF-20260822-0001',
@@ -266,7 +266,7 @@ async function main() {
       destinationLocationId: locSouth.id,
       itemId: itemSteel.id,
       batchNumber: 'BAT-ST-001',
-      quantity: 50,
+      quantity: 25.0,
       status: 'REQUESTED',
       createdById: opsUser.id,
     },
@@ -274,23 +274,29 @@ async function main() {
 
   console.log('🚚 Seeded Sample Stock Transfer:', sampleTransfer.transferNumber);
 
-  // 9. Seed Sample Customer Order
+  // 8. Seed Customer Order
   const sampleOrder = await prisma.customerOrder.create({
     data: {
       orderNumber: 'ORD-20260822-0001',
-      customerName: 'Apex Machinery & Automation',
+      customerName: 'Apex Heavy Machinery Ltd',
       locationId: locNorth.id,
-      status: 'RESERVED',
-      totalAmount: 15000,
+      status: 'DRAFT',
+      totalAmount: 18500.0,
       createdById: salesUser.id,
       items: {
         create: [
           {
             itemId: itemMotor.id,
-            batchNumber: 'BAT-MOT-001',
-            quantity: 10,
-            reservedQuantity: 10,
-            unitPrice: 1500,
+            batchNumber: 'BAT-MO-001',
+            quantity: 5,
+            unitPrice: 3500.0,
+            reservedQuantity: 5.0,
+          },
+          {
+            itemId: itemPump.id,
+            quantity: 1,
+            unitPrice: 1000.0,
+            reservedQuantity: 0.0,
           },
         ],
       },
@@ -303,7 +309,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error('❌ Seeding failed:', e);
+    console.error('❌ Seeding error:', e);
     process.exit(1);
   })
   .finally(async () => {
