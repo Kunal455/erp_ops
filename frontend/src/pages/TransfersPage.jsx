@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import {
+  ArrowLeftRight,
   Plus,
   Send,
   DownloadCloud,
-  CheckCircle2,
   Clock,
-  Truck,
+  CheckCircle2,
   AlertCircle,
   Search,
+  Filter,
 } from 'lucide-react';
 
 export const TransfersPage = () => {
   const [transfers, setTransfers] = useState([]);
   const [locations, setLocations] = useState([]);
   const [items, setItems] = useState([]);
+  const [inventoryList, setInventoryList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -34,14 +36,16 @@ export const TransfersPage = () => {
   const fetchTransfers = async () => {
     setLoading(true);
     try {
-      const [trfRes, locRes, itemRes] = await Promise.all([
+      const [trfRes, locRes, itemRes, invRes] = await Promise.all([
         apiClient.get('/transfers'),
         apiClient.get('/inventory/locations'),
         apiClient.get('/inventory/items'),
+        apiClient.get('/inventory'),
       ]);
       setTransfers(trfRes.data.data || []);
       setLocations(locRes.data.data || []);
       setItems(itemRes.data.data || []);
+      setInventoryList(invRes.data.data || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load transfers');
     } finally {
@@ -52,6 +56,23 @@ export const TransfersPage = () => {
   useEffect(() => {
     fetchTransfers();
   }, []);
+
+  // Compute available batches at chosen source warehouse for chosen item
+  const availableBatches = inventoryList.filter(
+    (inv) =>
+      inv.locationId === formData.sourceLocationId &&
+      inv.itemId === formData.itemId &&
+      inv.availableQuantity > 0
+  );
+
+  // Auto-select batch when source location and item change
+  useEffect(() => {
+    if (availableBatches.length > 0) {
+      if (!formData.batchNumber || !availableBatches.some((b) => b.batchNumber === formData.batchNumber)) {
+        setFormData((prev) => ({ ...prev, batchNumber: availableBatches[0].batchNumber }));
+      }
+    }
+  }, [formData.sourceLocationId, formData.itemId, availableBatches]);
 
   const handleCreateTransfer = async (e) => {
     e.preventDefault();
@@ -198,7 +219,7 @@ export const TransfersPage = () => {
           <div className="text-xs font-bold text-[#b45309] uppercase tracking-wider">
             IN TRANSIT
           </div>
-          <div className="text-4xl font-bold text-[#d97706] mt-4 font-sans">
+          <div className="text-4xl font-bold text-[#b45309] mt-4 font-sans">
             {inTransitCount}
           </div>
         </div>
@@ -213,31 +234,32 @@ export const TransfersPage = () => {
         </div>
       </div>
 
-      {/* Search & Filter */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:max-w-md">
-          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            <Search className="w-4 h-4" />
-          </span>
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search transfer..."
+            placeholder="Search transfer number, item..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 shadow-xs"
           />
         </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer"
-        >
-          <option value="ALL">Status: All</option>
-          <option value="REQUESTED">Status: Requested</option>
-          <option value="DISPATCHED">Status: In Transit</option>
-          <option value="RECEIVED">Status: Received</option>
-        </select>
+        <div className="flex items-center space-x-3 w-full sm:w-auto">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:border-indigo-500 shadow-xs"
+          >
+            <option value="ALL">Status: All</option>
+            <option value="REQUESTED">Requested</option>
+            <option value="DISPATCHED">In Transit</option>
+            <option value="RECEIVED">Received</option>
+          </select>
+        </div>
       </div>
 
       {/* Transfers Table */}
@@ -247,9 +269,8 @@ export const TransfersPage = () => {
             <thead className="bg-[#fafafa] text-[11px] uppercase font-bold text-slate-400 border-b border-slate-100 tracking-wider">
               <tr>
                 <th className="px-6 py-4">TRANSFER NO.</th>
-                <th className="px-6 py-4">ITEM & BATCH</th>
-                <th className="px-6 py-4">ORIGIN</th>
-                <th className="px-6 py-4">DESTINATION</th>
+                <th className="px-6 py-4">ITEM / BATCH</th>
+                <th className="px-6 py-4">ROUTE (FROM → TO)</th>
                 <th className="px-6 py-4 text-center">QUANTITY</th>
                 <th className="px-6 py-4 text-center">STATUS</th>
                 <th className="px-6 py-4 text-right">ACTION</th>
@@ -258,33 +279,34 @@ export const TransfersPage = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    Loading stock transfers...
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    Loading transfers...
                   </td>
                 </tr>
               ) : filteredTransfers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                     No stock transfers found.
                   </td>
                 </tr>
               ) : (
                 filteredTransfers.map((trf) => (
                   <tr key={trf.id} className="hover:bg-slate-50/60 transition">
-                    <td className="px-6 py-4 font-mono font-semibold text-[#4f46e5]">
+                    <td className="px-6 py-4 font-mono font-bold text-indigo-600">
                       {trf.transferNumber}
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-900">{trf.item?.name}</div>
-                      <div className="text-xs text-slate-400 font-mono">
+                      <div className="text-xs font-mono text-slate-400">
                         {trf.item?.sku} · Batch: {trf.batchNumber}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-700 font-medium">
-                      {trf.sourceLocation?.name}
-                    </td>
-                    <td className="px-6 py-4 text-slate-700 font-medium">
-                      {trf.destinationLocation?.name}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700">
+                        <span>{trf.sourceLocation?.name}</span>
+                        <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{trf.destinationLocation?.name}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-slate-900">
                       {trf.quantity} {trf.item?.uom}
@@ -404,14 +426,34 @@ export const TransfersPage = () => {
                   <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
                     Batch Number
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. BAT-ST-001"
-                    value={formData.batchNumber}
-                    onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
-                  />
+                  {availableBatches.length > 0 ? (
+                    <select
+                      required
+                      value={formData.batchNumber}
+                      onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                    >
+                      {availableBatches.map((b) => (
+                        <option key={b.batchNumber} value={b.batchNumber}>
+                          {b.batchNumber} (Avail: {b.availableQuantity})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. BAT-ST-001"
+                      value={formData.batchNumber}
+                      onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                    />
+                  )}
+                  {formData.sourceLocationId && formData.itemId && availableBatches.length === 0 && (
+                    <span className="text-[11px] text-amber-600 font-medium mt-1 block">
+                      ⚠️ No stock found for this item at chosen source warehouse.
+                    </span>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
