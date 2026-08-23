@@ -8,10 +8,11 @@ A production-grade, full-stack Operations ERP application engineered with a focu
 
 | Component | Provider / Platform | Live URL / Endpoint |
 | :--- | :--- | :--- |
-| **Frontend Application** | **Vercel** | [https://fundsroom-erp.vercel.app](https://fundsroom-erp.vercel.app) |
-| **Backend REST API** | **Render** | [https://fundsroom-erp-backend.onrender.com](https://fundsroom-erp-backend.onrender.com) |
-| **API Health Check** | **Render** | [https://fundsroom-erp-backend.onrender.com/health](https://fundsroom-erp-backend.onrender.com/health) |
-| **Swagger OpenAPI Docs** | **Render** | [https://fundsroom-erp-backend.onrender.com/api/docs](https://fundsroom-erp-backend.onrender.com/api/docs) |
+| **Frontend Application** | **Vercel** | [https://erp-ops.vercel.app](https://erp-ops.vercel.app/) |
+| **Backend REST API** | **Render** | [https://erp-ops.onrender.com](https://erp-ops.onrender.com) |
+| **API Health Check** | **Render** | [https://erp-ops.onrender.com/health](https://erp-ops.onrender.com/health) |
+| **Swagger OpenAPI Docs** | **Render** | [https://erp-ops.onrender.com/api/docs](https://erp-ops.onrender.com/api/docs) |
+| **Postman Collection & Workspace** | **Postman** | [Kunal's Workspace - Postman Collection](https://kk6547015-4843383.postman.co/workspace/kunal's-Workspace~c0e1ca57-4a75-4ba8-80ea-130865150004/request/46950697-a5f4423b-9ff8-48e7-9c79-3f8f0ffbb853?action=share&creator=46950697) |
 | **Cloud Database** | **TiDB Cloud** | Managed Serverless MySQL 8.0 |
 | **GitHub Repository** | **GitHub** | [https://github.com/Kunal455/erp_ops](https://github.com/Kunal455/erp_ops) |
 
